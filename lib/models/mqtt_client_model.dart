@@ -11,15 +11,17 @@ class MqttModel {
 
   Function(MqttConnectionState)? onConnectionStateChange;
 
-  MqttModel({this.brokerIP = '127.0.0.1', this.brokerPort = 1883}) {
+  MqttModel({this.brokerIP = '192.168.10.100', this.brokerPort = 1883}) {
     client = createMqttClient(brokerIP, ID, brokerPort);
 
     client.setProtocolV311();
-    // client.connectTimeoutPeriod = 10;
-    // client.keepAlivePeriod = 20;
+    client.connectTimeoutPeriod = 10;
+    client.keepAlivePeriod = 20;
 
     client.autoReconnect = true;
-
+    if (kIsWeb) {
+      client.websocketProtocols = MqttClientConstants.protocolsSingleDefault;
+    }
     client.onAutoReconnect = () {
       debugPrint("Reconnecting");
     };

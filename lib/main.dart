@@ -19,7 +19,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Dashboard',
       home: const MyHomePage(rootTopico: 'home/test/'),
     );
   }
@@ -78,9 +78,8 @@ class _MyHomePageState extends MqttThingScreenState<MyHomePage> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        Text("Lectura: $read", style: GoogleFonts.caveat(color: Colors.white)),
+        Text("Lectura: $read"),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(foregroundColor: Colors.blueGrey[800]),
           onPressed: ()  {
             // debugPrint("It's me dad!");
             if (!mqttNotifier.isConnected()) {
@@ -92,7 +91,6 @@ class _MyHomePageState extends MqttThingScreenState<MyHomePage> {
           },
           child: Text(
             "Press meee",
-            style: GoogleFonts.caveat(color: Colors.white),
           ),
         ),
       ],

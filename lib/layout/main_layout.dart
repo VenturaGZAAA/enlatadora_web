@@ -15,9 +15,7 @@ class MainLayout extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           name,
-          style: GoogleFonts.caveat(color: Colors.white),
         ),
-        backgroundColor: Colors.black,
         actions: appbarActions,
       ),
       body: Center(
@@ -25,13 +23,6 @@ class MainLayout extends StatelessWidget {
           width: double.infinity,
           height: double.infinity,
           padding: EdgeInsets.all(25),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.black87, Colors.black],
-            ),
-          ),
           child: body,
         ),
       ),
