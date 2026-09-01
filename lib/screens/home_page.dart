@@ -16,9 +16,15 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   late final String ledTopic = "${widget.rootTopico}led";
   late final String readTopic = "${widget.rootTopico}read";
 
-  static const int MAX_ITEMS = 50;
+  late List<Widget Function()> screens = [
+    _dashboardBody,
+    _recorder,
+    _configBody,
+  ];
+  int _currentScreenIndex = 0;
 
   final List<MockData> reads = List.empty(growable: true);
+  static const int MAX_ITEMS = 50;
 
   void mate() async {
     await ref.read(mqttProvider.future);
@@ -46,16 +52,55 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
 
   @override
   Widget buildBody(BuildContext context) {
-    return _body();
+    return _layout();
   }
 
-  Widget _body() {
+  Widget _layout() {
+    return Scaffold(
+      appBar: AppBar(title: Text(super.widget.name), actions: appbarActions),
+      body: Center(
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          padding: EdgeInsets.all(25),
+          child: screens[_currentScreenIndex].call(),
+        ),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentScreenIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _currentScreenIndex = index;
+          });
+        },
+        destinations: const <Widget>[
+          NavigationDestination(
+            icon: Icon(Icons.home),
+            selectedIcon: Icon(Icons.home_outlined),
+            label: "Home",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.mic),
+            selectedIcon: Icon(Icons.mic_outlined),
+            label: "Voice",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings),
+            selectedIcon: Icon(Icons.settings_outlined),
+            label: "Settings",
+          ),
+        ],
+      ),
+      // floatingActionButton: floatingActionButton,
+    );
+  }
+
+  Widget _dashboardBody() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         Expanded(
           child: ListView.builder(
-            reverse: true,
             itemCount: reads.length,
             itemBuilder: (ctx, index) => reads[index].view(),
           ),
@@ -75,6 +120,14 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
         ),
       ],
     );
+  }
+
+  Widget _recorder() {
+    return const Text("W.I.P");
+  }
+
+  Widget _configBody() {
+    return const Text("C.O.N.F.I.G");
   }
 }
 

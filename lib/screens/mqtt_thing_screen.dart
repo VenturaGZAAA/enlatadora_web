@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:enlatadora_web/layout/main_layout.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 
 abstract class MqttThingScreen extends ConsumerStatefulWidget {
@@ -50,10 +49,6 @@ abstract class MqttThingScreenState<T extends MqttThingScreen>
 
   @override
   Widget build(BuildContext context) {
-    return MainLayout(
-      name: widget.name,
-      appbarActions: appbarActions,
-      body: buildBody(context),
-    );
+    return buildBody(context);
   }
 }
