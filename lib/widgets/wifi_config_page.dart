@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 
-
 class WifiConfigPage extends StatelessWidget {
   final TextEditingController _ssidControl;
   final TextEditingController _passControl;
+  final bool _apMode;
 
+  final void Function(bool?) _checkCallback;
   final void Function() _sendCallback;
 
-  const WifiConfigPage(this._ssidControl,this._passControl,this._sendCallback,{super.key});
-
-
+  const WifiConfigPage({
+    required TextEditingController ssidControl,
+    required TextEditingController passControl,
+    required bool apMode,
+    required void Function(bool?) checkCallback,
+    required void Function() sendCallback,
+    super.key,
+  }) : _ssidControl = ssidControl,
+       _passControl = passControl,
+       _apMode = apMode,
+       _checkCallback = checkCallback,
+       _sendCallback = sendCallback;
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +27,7 @@ class WifiConfigPage extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
+      spacing: 15,
       children: [
         TextField(
           controller: _ssidControl,
@@ -25,7 +36,7 @@ class WifiConfigPage extends StatelessWidget {
             border: OutlineInputBorder(),
           ),
         ),
-        SizedBox(height: 15),
+
         TextField(
           controller: _passControl,
           decoration: InputDecoration(
@@ -33,13 +44,15 @@ class WifiConfigPage extends StatelessWidget {
             border: OutlineInputBorder(),
           ),
         ),
-        SizedBox(height: 15),
-        ElevatedButton(
-          onPressed: _sendCallback,
-          child: Text("Send config"),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text("Start in access point mode"),
+            Checkbox(value: _apMode, onChanged: _checkCallback),
+          ],
         ),
+        ElevatedButton(onPressed: _sendCallback, child: Text("Send config")),
       ],
     );
   }
-
 }

@@ -1,7 +1,9 @@
-import 'package:enlatadora_web/models/WifiData.dart';
+import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
+import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 
@@ -20,6 +22,7 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
 
   final _ssidController = TextEditingController();
   final _passController = TextEditingController();
+  bool _apModeCheck = false;
 
   late List<Widget Function()> screens = [
     _dashboardBody,
@@ -30,6 +33,10 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
 
   final List<MockData> reads = List.empty(growable: true);
   static const int MAX_ITEMS = 50;
+
+  @override
+  List<Widget> get appbarActions =>
+      kIsWeb ? super.appbarActions : [MqttConfigButton()];
 
   void mate() async {
     await ref.read(mqttProvider.future);
@@ -141,13 +148,24 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   Future<void> _wifiConfirm() async {
     // Check connection first
     if (!mqttNotifier.isConnected()) {
-
       if (mounted) {
         ScaffoldMessenger.maybeOf(
           context,
         )?.showSnackBar(SnackBar(content: Text("Not connected bro")));
       }
       mqttNotifier.connect();
+      return;
+    }
+
+    if (_apModeCheck) {
+      final bool sendConfirmed = await _showConfirmDialog(
+        title: "Set WiFi mode to Access Point",
+        cancelText: "Cancel",
+        confirmText: "Confirm",
+      );
+      if (sendConfirmed) {
+        _publishWiFiData(WiFiData(start_ap: true), "Mode set to access point!");
+      }
       return;
     }
 
@@ -180,7 +198,7 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
     final bool sendConfirmed = await _showConfirmDialog(
       title: "Send WiFi Configuration?",
       message:
-          "SSID: $ssid\nPassword: ${pass.isEmpty ? '(empty)' : '••••••••'}",
+          "SSID: $ssid\nPassword: ${pass.isEmpty ? '(empty)' : '••••••••'}\nStart in AP mode: 'No'}",
       cancelText: "Cancel",
       confirmText: "Send",
     );
@@ -188,17 +206,23 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
     if (!sendConfirmed) {
       return;
     }
+    _publishWiFiData(
+      WiFiData(ssid: ssid, pass: pass, start_ap: false),
+      "WiFi data sent!",
+    );
+  }
 
+  void _publishWiFiData(WiFiData data, String message) {
     mqttNotifier.publish(
-      "config/wifi/ap",
-      WiFiData(ssid: ssid, pass: pass, startAP: false).toJson().toString(),
+      "config/wifi/data",
+      data.toJson().toString(),
       qos: MqttQos.exactlyOnce,
     );
 
     if (mounted) {
       ScaffoldMessenger.maybeOf(
         context,
-      )?.showSnackBar(SnackBar(content: Text("WiFi config sent!")));
+      )?.showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -252,7 +276,15 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   }
 
   Widget _configBody() {
-    return WifiConfigPage(_ssidController, _passController, _wifiConfirm);
+    return WifiConfigPage(
+      ssidControl: _ssidController,
+      passControl: _passController,
+      apMode: _apModeCheck,
+      checkCallback: (check) => setState(() {
+        _apModeCheck = check ?? false;
+      }),
+      sendCallback: _wifiConfirm,
+    );
   }
 }
 
