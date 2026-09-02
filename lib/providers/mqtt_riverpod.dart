@@ -31,28 +31,32 @@ class MqttNotifier extends AsyncNotifier<MqttState>
     );
   }
 
-  // @override
-  // void didChangeAppLifecycleState(AppLifecycleState state) {
-  //   debugPrint('App lifecycle changed to: $state');
-  //   switch (state) {
-  //     case AppLifecycleState.paused:
-  //     case AppLifecycleState.detached:
-  //     case AppLifecycleState.hidden:
-  //     case AppLifecycleState.inactive:
-  //       // Disconnect when app goes to background or is closing
-  //       if (this.state.value?.isConnected == true) {
-  //         debugPrint('App moving to background, disconnecting MQTT...');
-  //         disconnect(manual: false);
-  //       }
-  //       break;
-  //     case AppLifecycleState.resumed:
-  //       // You could call connect() here if you want auto-reconnect
-  //       if (this.state.value?.model.manualDisconnect == false) {
-  //         connect();
-  //       }
-  //       break;
-  //   }
-  // }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    debugPrint('App lifecycle changed to: $state');
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+      if (this.state.value?.isConnected == true) {
+        debugPrint('App moving to background, disconnecting MQTT...');
+        disconnect(manual: false);
+      }
+      break;
+      case AppLifecycleState.inactive:
+        if (this.state.value?.isConnected == true) {
+          debugPrint('App moving to background, disconnecting MQTT...');
+          disconnect(manual: false);
+        }
+        break;
+      case AppLifecycleState.resumed:
+        // You could call connect() here if you want auto-reconnect
+        if (this.state.value?.model.manualDisconnect == false) {
+          connect();
+        }
+        break;
+    }
+  }
 
   void setIPP(String newIP) async {
     if (state.value!.isConnected) {
@@ -72,6 +76,7 @@ class MqttNotifier extends AsyncNotifier<MqttState>
 
   Future<void> connect() async {
     if (state.value == null) return;
+    if (state.value!.connectionState == MqttConnectionState.connected) return;
 
     // Update state to connecting
     state = AsyncData(

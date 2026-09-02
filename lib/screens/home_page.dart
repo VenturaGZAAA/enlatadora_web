@@ -1,4 +1,3 @@
-import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
@@ -20,9 +19,6 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   late final String ledTopic = "${widget.rootTopico}led";
   late final String readTopic = "${widget.rootTopico}read";
 
-  final _ssidController = TextEditingController();
-  final _passController = TextEditingController();
-  bool _apModeCheck = false;
 
   late List<Widget Function()> screens = [
     _dashboardBody,
@@ -60,13 +56,6 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   void unsubscribeToTopics() {
     mqttNotifier.unsubscribe(readTopic);
     mqttNotifier.disconnect(manual: false);
-  }
-
-  @override
-  void dispose() {
-    _ssidController.dispose();
-    _passController.dispose();
-    super.dispose();
   }
 
   @override
@@ -145,146 +134,10 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
     return Center(child: const Text("T.B.D"));
   }
 
-  Future<void> _wifiConfirm() async {
-    // Check connection first
-    if (!mqttNotifier.isConnected()) {
-      if (mounted) {
-        ScaffoldMessenger.maybeOf(
-          context,
-        )?.showSnackBar(SnackBar(content: Text("Not connected bro")));
-      }
-      mqttNotifier.connect();
-      return;
-    }
 
-    if (_apModeCheck) {
-      final bool sendConfirmed = await _showConfirmDialog(
-        title: "Set WiFi mode to Access Point",
-        cancelText: "Cancel",
-        confirmText: "Confirm",
-      );
-      if (sendConfirmed) {
-        _publishWiFiData(WiFiData(start_ap: true), "Mode set to access point!");
-      }
-      return;
-    }
-
-    // Validate SSID
-    if (_ssidController.text.isEmpty) {
-      await _showErrorDialog(
-        title: "SSID can not be empty!",
-        confirmText: "Go back",
-      );
-      return;
-    }
-
-    // Validate password
-    if (_passController.text.isEmpty) {
-      final bool proceedWithoutPassword = await _showConfirmDialog(
-        title: "Password is empty!",
-        cancelText: "Return",
-        confirmText: "Confirm",
-      );
-
-      if (!proceedWithoutPassword) {
-        return;
-      }
-    }
-
-    final String ssid = _ssidController.text;
-    final String pass = _passController.text;
-
-    // Optional: Show confirmation before sending
-    final bool sendConfirmed = await _showConfirmDialog(
-      title: "Send WiFi Configuration?",
-      message:
-          "SSID: $ssid\nPassword: ${pass.isEmpty ? '(empty)' : '••••••••'}\nStart in AP mode: 'No'}",
-      cancelText: "Cancel",
-      confirmText: "Send",
-    );
-
-    if (!sendConfirmed) {
-      return;
-    }
-    _publishWiFiData(
-      WiFiData(ssid: ssid, pass: pass, start_ap: false),
-      "WiFi data sent!",
-    );
-  }
-
-  void _publishWiFiData(WiFiData data, String message) {
-    mqttNotifier.publish(
-      "config/wifi/data",
-      data.toJson().toString(),
-      qos: MqttQos.exactlyOnce,
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.maybeOf(
-        context,
-      )?.showSnackBar(SnackBar(content: Text(message)));
-    }
-  }
-
-  // Helper method for error dialogs (just acknowledgment)
-  Future<void> _showErrorDialog({
-    required String title,
-    String? message,
-    required String confirmText,
-  }) async {
-    await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: message != null ? Text(message) : null,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(confirmText),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Helper method for confirmation dialogs
-  Future<bool> _showConfirmDialog({
-    required String title,
-    String? message,
-    required String cancelText,
-    required String confirmText,
-  }) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: message != null ? Text(message) : null,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(cancelText),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(confirmText),
-          ),
-        ],
-      ),
-    );
-
-    return result ?? false;
-  }
 
   Widget _configBody() {
-    return WifiConfigPage(
-      ssidControl: _ssidController,
-      passControl: _passController,
-      apMode: _apModeCheck,
-      checkCallback: (check) => setState(() {
-        _apModeCheck = check ?? false;
-      }),
-      sendCallback: _wifiConfirm,
-    );
+    return WifiConfigPage();
   }
 }
 

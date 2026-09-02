@@ -18,7 +18,6 @@ class MyApp extends ConsumerWidget {
       fontSize: 25.0,
       fontWeight: FontWeight.bold,
     ),
-    bodyMedium: GoogleFonts.arima(fontSize: 16.0),
   );
 
   @override
@@ -29,7 +28,7 @@ class MyApp extends ConsumerWidget {
         useMaterial3: true,
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
+          seedColor: Colors.lightBlueAccent,
           brightness: Brightness.light,
         ),
         textTheme: textTheme,
@@ -38,7 +37,7 @@ class MyApp extends ConsumerWidget {
         useMaterial3: true,
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
+          seedColor: Colors.blueAccent,
           brightness: Brightness.dark,
         ),
         textTheme: textTheme,

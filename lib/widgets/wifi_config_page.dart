@@ -1,25 +1,128 @@
+import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:enlatadora_web/models/wifi_data.dart';
+import 'package:mqtt_client/mqtt_client.dart';
+import 'package:enlatadora_web/widgets/helpers.dart';
 
-class WifiConfigPage extends StatelessWidget {
-  final TextEditingController _ssidControl;
-  final TextEditingController _passControl;
-  final bool _apMode;
+class WifiConfigPage extends ConsumerStatefulWidget {
+  const WifiConfigPage({super.key});
 
-  final void Function(bool?) _checkCallback;
-  final void Function() _sendCallback;
+  @override
+  ConsumerState<ConsumerStatefulWidget> createState() {
+    return WifiConfigPageState();
+  }
+}
 
-  const WifiConfigPage({
-    required TextEditingController ssidControl,
-    required TextEditingController passControl,
-    required bool apMode,
-    required void Function(bool?) checkCallback,
-    required void Function() sendCallback,
-    super.key,
-  }) : _ssidControl = ssidControl,
-       _passControl = passControl,
-       _apMode = apMode,
-       _checkCallback = checkCallback,
-       _sendCallback = sendCallback;
+class WifiConfigPageState extends ConsumerState<WifiConfigPage> {
+  final _ssidController = TextEditingController();
+  final _passController = TextEditingController();
+  bool _apModeCheck = false;
+
+  late MqttNotifier mqttNotifier;
+
+  @override
+  void initState() {
+    super.initState();
+    mqttNotifier = ref.read(mqttProvider.notifier);
+    mate();
+  }
+
+  @override
+  void dispose() {
+    _ssidController.dispose();
+    _passController.dispose();
+    super.dispose();
+  }
+
+  Future<void> mate() async {
+    await mqttNotifier.connect();
+  }
+
+  void _publishWiFiData(WiFiData data, String message) {
+    mqttNotifier.publish(
+      "config/wifi/data",
+      data.toJson().toString(),
+      qos: MqttQos.exactlyOnce,
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.maybeOf(
+        context,
+      )?.showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
+  Future<void> _wifiConfirm() async {
+
+    // Check connection first
+    if (!mqttNotifier.isConnected()) {
+      if (mounted) {
+        ScaffoldMessenger.maybeOf(
+          context,
+        )?.showSnackBar(SnackBar(content: Text("Not connected bro")));
+      }
+      mqttNotifier.connect();
+      return;
+    }
+
+    if (_apModeCheck) {
+      final bool sendConfirmed = await showConfirmDialog(
+        context,
+        title: "Set WiFi mode to Access Point",
+      );
+      if (sendConfirmed) {
+        _publishWiFiData(WiFiData(start_ap: true), "Mode set to access point!");
+      }
+      return;
+    }
+
+    // Validate SSID
+    if (_ssidController.text.isEmpty) {
+      await showErrorDialog(
+        context,
+        title: "SSID can not be empty!",
+        confirmText: "Go back",
+      );
+      return;
+    }
+
+    // Validate password
+    if (_passController.text.isEmpty) {
+      final bool proceedWithoutPassword = await showConfirmDialog(
+        context,
+        title: "Password is empty!",
+      );
+
+      if (!proceedWithoutPassword) {
+        return;
+      }
+    }
+
+    final String ssid = _ssidController.text;
+    final String pass = _passController.text;
+
+    if (!mounted) {
+      debugPrint("Wifi config not mounted");
+      return;
+    }
+    // Optional: Show confirmation before sending
+    final bool sendConfirmed = await showConfirmDialog(
+      context,
+      title: "Send WiFi Configuration?",
+      message:
+          "SSID: $ssid\nPassword: ${pass.isEmpty ? '(empty)' : pass}\nStart in AP mode: 'No'}",
+      confirmText: "Send",
+    );
+
+    if (!sendConfirmed) {
+      return;
+    }
+    _publishWiFiData(
+      WiFiData(ssid: ssid, pass: pass, start_ap: false),
+      "WiFi data sent!",
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +133,7 @@ class WifiConfigPage extends StatelessWidget {
       spacing: 15,
       children: [
         TextField(
-          controller: _ssidControl,
+          controller: _ssidController,
           decoration: InputDecoration(
             labelText: "SSID",
             border: OutlineInputBorder(),
@@ -38,7 +141,7 @@ class WifiConfigPage extends StatelessWidget {
         ),
 
         TextField(
-          controller: _passControl,
+          controller: _passController,
           decoration: InputDecoration(
             labelText: "Password",
             border: OutlineInputBorder(),
@@ -48,10 +151,15 @@ class WifiConfigPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text("Start in access point mode"),
-            Checkbox(value: _apMode, onChanged: _checkCallback),
+            Checkbox(
+              value: _apModeCheck,
+              onChanged: (value) {
+                _apModeCheck = value ?? false;
+              },
+            ),
           ],
         ),
-        ElevatedButton(onPressed: _sendCallback, child: Text("Send config")),
+        ElevatedButton(onPressed: _wifiConfirm, child: Text("Send config")),
       ],
     );
   }
