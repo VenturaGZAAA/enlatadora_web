@@ -12,8 +12,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
-
   cupertino_icons: ^1.0.8
   mqtt_client: ^10.11.11
   record: ^7.1.1
@@ -21,9 +19,12 @@ dependencies:
   google_fonts: ^8.2.1
   flutter_riverpod: ^3.3.1
   provider: ^6.1.5+1
+  json_annotation: ^4.12.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  build_runner: ^2.4.0
+  json_serializable: ^6.9.0
 
 
   flutter_lints: ^6.0.0

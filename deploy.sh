@@ -13,6 +13,5 @@ find . -type f -not -name "*.br" -not -name "*.png" -not -name "*.jpg" -not -nam
     fi
 done
 
-cd ..
-cd ..
+cd ...
 rsync -r ./build/web /run/media/urzu-7/G-CODE
