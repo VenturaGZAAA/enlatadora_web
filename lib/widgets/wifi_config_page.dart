@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,7 +44,7 @@ class WifiConfigPageState extends ConsumerState<WifiConfigPage> {
   void _publishWiFiData(WiFiData data, String message) {
     mqttNotifier.publish(
       "config/wifi/data",
-      data.toJson().toString(),
+      jsonEncode(data),
       qos: MqttQos.exactlyOnce,
     );
 
