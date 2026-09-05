@@ -42,9 +42,10 @@ class WifiConfigPageState extends ConsumerState<WifiConfigPage> {
   }
 
   void _publishWiFiData(WiFiData data, String message) {
+    const encoder = JsonEncoder.withIndent('  ');
     mqttNotifier.publish(
       "config/wifi/data",
-      jsonEncode(data),
+      encoder.convert(data),
       qos: MqttQos.exactlyOnce,
     );
 
@@ -81,11 +82,10 @@ class WifiConfigPageState extends ConsumerState<WifiConfigPage> {
 
     // Validate SSID
     if (_ssidController.text.isEmpty) {
-      await showErrorDialog(
-        context,
-        title: "SSID can not be empty!",
-        confirmText: "Go back",
-      );
+      final bool restoreSTA = await showConfirmDialog(context, title: "Do you wan to restore the stored wifi credentials?");
+      if (restoreSTA) {
+        _publishWiFiData(WiFiData(start_ap: false),"WiFi credentials restored!");
+      }
       return;
     }
 

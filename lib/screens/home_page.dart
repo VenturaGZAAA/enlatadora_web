@@ -1,5 +1,9 @@
+import 'dart:convert';
+
+import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
+import 'package:enlatadora_web/widgets/helpers.dart';
 import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
 import 'package:flutter/foundation.dart';
@@ -19,6 +23,7 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   late final String ledTopic = "${widget.rootTopico}led";
   late final String readTopic = "${widget.rootTopico}read";
 
+  WiFiState? _wiFiState;
 
   late List<Widget Function()> screens = [
     _dashboardBody,
@@ -45,6 +50,13 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
         }
       });
     }, qos: MqttQos.atMostOnce);
+    mqttNotifier.subscribe("config/wifi/state", (content) {
+      try {
+        setState(() {
+          _wiFiState = WiFiState.fromJson(jsonDecode(content));
+        });
+      } finally {}
+    });
   }
 
   @override
@@ -64,6 +76,9 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   }
 
   Widget _layout() {
+    if (_wiFiState != null && _wiFiState!.isInvalid()) {
+      _currentScreenIndex = 2;
+    }
     return Scaffold(
       appBar: AppBar(title: Text(super.widget.name), actions: appbarActions),
       body: Center(
@@ -80,6 +95,9 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
           setState(() {
             _currentScreenIndex = index;
           });
+          if (_currentScreenIndex == 2) {
+            _wiFiState = null;
+          }
         },
         destinations: const <Widget>[
           NavigationDestination(
@@ -134,10 +152,40 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
     return Center(child: const Text("T.B.D"));
   }
 
-
-
   Widget _configBody() {
-    return WifiConfigPage();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.max,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      spacing: 15,
+      children: [WifiConfigPage(), _resetButton()],
+    );
+  }
+
+  Widget _resetButton() {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color.fromARGB(117, 244, 67, 54),
+        foregroundColor: Colors.white,
+
+      ).merge(Theme.of(context).elevatedButtonTheme.style),
+      onPressed: () async {
+        bool reset = await showConfirmDialog(
+          context,
+          title: "Reset the ESP32?",
+        );
+        if (reset) {
+          mqttNotifier.publish("admin/reset/request", "1");
+          if (mounted) {
+            ScaffoldMessenger.maybeOf(
+              context,
+            )?.showSnackBar(SnackBar(content: Text("Reset request sent")));
+          }
+        }
+
+      },
+      child: Text("Reset the ESP-32"),
+    );
   }
 }
 

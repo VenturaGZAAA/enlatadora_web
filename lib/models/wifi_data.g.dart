@@ -17,3 +17,13 @@ Map<String, dynamic> _$WiFiDataToJson(WiFiData instance) => <String, dynamic>{
   'pass': instance.pass,
   'start_ap': instance.start_ap,
 };
+
+WiFiState _$WiFiStateFromJson(Map<String, dynamic> json) => WiFiState(
+  sta_connected: json['sta_connected'] as bool,
+  start_ap: json['start_ap'] as bool,
+);
+
+Map<String, dynamic> _$WiFiStateToJson(WiFiState instance) => <String, dynamic>{
+  'start_ap': instance.start_ap,
+  'sta_connected': instance.sta_connected,
+};
