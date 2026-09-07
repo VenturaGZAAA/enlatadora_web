@@ -173,6 +173,10 @@ class MqttNotifier extends AsyncNotifier<MqttState>
     void Function(String) callback, {
     MqttQos qos = MqttQos.atMostOnce,
   }) {
+    if (!isConnected()) {
+      debugPrint("Can not subscribe, not connected");
+      return;
+    }
     state.value?.model.client.subscribe(topic, qos);
     subscriptions.putIfAbsent(
       topic,

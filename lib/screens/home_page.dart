@@ -35,10 +35,6 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   final List<MockData> reads = List.empty(growable: true);
   static const int MAX_ITEMS = 50;
 
-  @override
-  List<Widget> get appbarActions =>
-      kIsWeb ? super.appbarActions : [MqttConfigButton()];
-
   void mate() async {
     await ref.read(mqttProvider.future);
     await mqttNotifier.connect();
@@ -57,6 +53,12 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
         });
       } finally {}
     });
+  }
+
+  @override
+  void initState() {
+    appbarActions.add(MqttConfigButton());
+    super.initState();
   }
 
   @override
