@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:http/http.dart' as http;
 
@@ -48,9 +49,16 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
     }
 
     try {
+      String? path = 'temp_recording.wav';
+      if (!kIsWeb) {
+        final dir = await getTemporaryDirectory();
+        path = "${dir.path}/$path";
+      }
+
+
       await _recorder.start(
         const RecordConfig(encoder: AudioEncoder.wav), // WAV is safe
-        path: 'temp_recording.wav', // web uses a blob
+        path: path, // web uses a blob
       );
       setState(() => _isRecording = true);
     } catch (e) {
@@ -77,7 +85,7 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
         bytes = response.bodyBytes;
       }
       else {
-        final file = File(path!);
+        final file = File.fromUri(Uri.parse(path!));
         log("Path: ${file.path}");
         bytes = await file.readAsBytes();
       }
