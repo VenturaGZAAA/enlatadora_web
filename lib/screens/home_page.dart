@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
+import 'package:enlatadora_web/widgets/groq_voice_recorder.dart';
 import 'package:enlatadora_web/widgets/helpers.dart';
 import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 
 class HomePage extends MqttThingScreen {
@@ -30,6 +32,9 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
     _recorder,
     _configBody,
   ];
+
+  String? groqKey;
+
   int _currentScreenIndex = 0;
 
   final List<MockData> reads = List.empty(growable: true);
@@ -59,6 +64,10 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   void initState() {
     appbarActions.add(MqttConfigButton());
     super.initState();
+    const key = ['GROQ_KEY'];
+    if (dotenv.isEveryDefined(key)) {
+      groqKey = dotenv.get(key[0]);
+    }
   }
 
   @override
@@ -69,6 +78,11 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   @override
   void unsubscribeToTopics() {
     mqttNotifier.unsubscribe(readTopic);
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
     mqttNotifier.disconnect(manual: false);
   }
 
@@ -150,8 +164,35 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
     );
   }
 
+  int _matches = 0;
+
   Widget _recorder() {
-    return Center(child: const Text("T.B.D"));
+    if (groqKey == null) {
+      return Center(
+        child: Text(
+          "GROQ_KEY not found in .env file",
+          style: TextStyle(color: Colors.red),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      spacing: 15.0,
+      children: [
+        GroqVoiceRecorder(
+          groqApiKey: groqKey!,
+          keywords: ["start", "stop", "reset"],
+          onKeywordDetected: (result) {
+            debugPrint("Voice result: $result");
+            setState(() {
+              _matches += 1;
+            });
+          },
+        ),
+        Text("$_matches"),
+      ],
+    );
   }
 
   Widget _configBody() {
@@ -169,7 +210,6 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color.fromARGB(117, 244, 67, 54),
         foregroundColor: Colors.white,
-
       ).merge(Theme.of(context).elevatedButtonTheme.style),
       onPressed: () async {
         bool reset = await showConfirmDialog(
@@ -184,7 +224,6 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
             )?.showSnackBar(SnackBar(content: Text("Reset request sent")));
           }
         }
-
       },
       child: Text("Reset the ESP-32"),
     );

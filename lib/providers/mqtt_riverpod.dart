@@ -200,8 +200,7 @@ class MqttNotifier extends AsyncNotifier<MqttState>
         recMess.payload.message,
       );
       String topico = c[0].topic;
-      debugPrint('Notification:: topic is <$topico>, payload is <-- $pt -->');
-      // listeners(c[0].topic, pt);
+      // debugPrint('Notification:: topic is <$topico>, payload is <-- $pt -->');
       if (subscriptions.containsKey(topico)) {
         subscriptions[topico]?.callback.call(pt);
       }
