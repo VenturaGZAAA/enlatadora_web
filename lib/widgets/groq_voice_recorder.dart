@@ -1,5 +1,8 @@
 import 'dart:convert';
+import 'dart:developer';
+import 'dart:io';
 import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:http/http.dart' as http;
@@ -30,12 +33,13 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
 
   @override
   void dispose() {
+    _recorder.cancel();
     _recorder.dispose();
     super.dispose();
   }
 
   Future<void> _startRecording() async {
-    final hasPermission = await _recorder.hasPermission();
+    final hasPermission = await _recorder.hasPermission(request: true);
     if (!hasPermission) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Microphone permission denied')),
@@ -65,9 +69,18 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
       final path = await _recorder.stop();
       setState(() => _isRecording = false);
 
-      // On web, path is a blob URL; we need to fetch it
-      final response = await http.get(Uri.parse(path!));
-      final bytes = response.bodyBytes;
+      Uint8List? bytes;
+
+      if (kIsWeb){
+        // On web, path is a blob URL; we need to fetch it
+        final response = await http.get(Uri.parse(path!));
+        bytes = response.bodyBytes;
+      }
+      else {
+        final file = File(path!);
+        log("Path: ${file.path}");
+        bytes = await file.readAsBytes();
+      }
       if (bytes == null || bytes.isEmpty) {
         throw 'No audio data recorded';
       }

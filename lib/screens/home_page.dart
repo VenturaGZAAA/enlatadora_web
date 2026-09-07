@@ -7,7 +7,6 @@ import 'package:enlatadora_web/widgets/groq_voice_recorder.dart';
 import 'package:enlatadora_web/widgets/helpers.dart';
 import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mqtt_client/mqtt_client.dart';
