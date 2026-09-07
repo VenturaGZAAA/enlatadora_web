@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mqtt_client/mqtt_client.dart';
-
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:enlatadora_web/models/mqtt_client_model.dart';
@@ -18,13 +17,13 @@ class MqttNotifier extends AsyncNotifier<MqttState>
 
     // Set up the callback to update state when connection changes
     model.onConnectionStateChange = (newState) {
-      debugPrint('Connection state changed to: $newState');
+      log('Connection state changed to: $newState');
       if (state.value != null) {
         // This triggers UI rebuilds
         state = AsyncData(state.value!.copyWith(connectionState: newState));
       }
     };
-    debugPrint("Oh genki ya na");
+    log("Oh genki ya na");
     return MqttState(
       model: model,
       connectionState: MqttConnectionState.disconnected,
@@ -33,19 +32,19 @@ class MqttNotifier extends AsyncNotifier<MqttState>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    debugPrint('App lifecycle changed to: $state');
+    log('App lifecycle changed to: $state');
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
       if (this.state.value?.isConnected == true) {
-        debugPrint('App moving to background, disconnecting MQTT...');
+        log('App moving to background, disconnecting MQTT...');
         disconnect(manual: false);
       }
       break;
       case AppLifecycleState.inactive:
         if (this.state.value?.isConnected == true) {
-          debugPrint('App moving to background, disconnecting MQTT...');
+          log('App moving to background, disconnecting MQTT...');
           disconnect(manual: false);
         }
         break;
@@ -98,7 +97,7 @@ class MqttNotifier extends AsyncNotifier<MqttState>
           MqttConnectionState.connected;
 
       if (isConnected) {
-        debugPrint('Connected!');
+        log('Connected!');
 
         for (final topic in subscriptions.keys) {
           // subscribe(topic, subscriptions[topic]!.callback, qos: subscriptions[topic]!.qos);
@@ -110,10 +109,10 @@ class MqttNotifier extends AsyncNotifier<MqttState>
           state.value!.copyWith(connectionState: MqttConnectionState.connected),
         );
       } else {
-        debugPrint(
+        log(
           'Connection failed. State: ${state.value!.model.client.connectionStatus?.state}',
         );
-        debugPrint(
+        log(
           'Return code: ${state.value!.model.client.connectionStatus?.returnCode}',
         );
         state = AsyncData(
@@ -123,7 +122,7 @@ class MqttNotifier extends AsyncNotifier<MqttState>
         );
       }
     } on NoConnectionException catch (e) {
-      debugPrint('EXAMPLE::client exception - $e');
+      log('EXAMPLE::client exception - $e');
       state.value!.model.client.disconnect();
       state = AsyncData(
         state.value!.copyWith(
@@ -131,7 +130,7 @@ class MqttNotifier extends AsyncNotifier<MqttState>
         ),
       );
     } on SocketException catch (e) {
-      debugPrint('EXAMPLE::socket exception - $e');
+      log('EXAMPLE::socket exception - $e');
       state.value!.model.client.disconnect();
       state = AsyncData(
         state.value!.copyWith(
@@ -151,14 +150,14 @@ class MqttNotifier extends AsyncNotifier<MqttState>
         MqttConnectionState.connected;
 
     if (!isConnected) {
-      debugPrint('Disconnected!');
+      log('Disconnected!');
       state = AsyncData(
         state.value!.copyWith(
           connectionState: MqttConnectionState.disconnected,
         ),
       );
     } else {
-      debugPrint("Disconnection failed?");
+      log("Disconnection failed?");
     }
   }
 
@@ -174,7 +173,7 @@ class MqttNotifier extends AsyncNotifier<MqttState>
     MqttQos qos = MqttQos.atMostOnce,
   }) {
     if (!isConnected()) {
-      debugPrint("Can not subscribe, not connected");
+      log("Can not subscribe, not connected");
       return;
     }
     state.value?.model.client.subscribe(topic, qos);
@@ -200,7 +199,7 @@ class MqttNotifier extends AsyncNotifier<MqttState>
         recMess.payload.message,
       );
       String topico = c[0].topic;
-      // debugPrint('Notification:: topic is <$topico>, payload is <-- $pt -->');
+      //  log('Notification:: topic is <$topico>, payload is <-- $pt -->');
       if (subscriptions.containsKey(topico)) {
         subscriptions[topico]?.callback.call(pt);
       }
@@ -213,12 +212,12 @@ class MqttNotifier extends AsyncNotifier<MqttState>
     MqttQos qos = MqttQos.atMostOnce,
   }) async {
     if (state.value!.isConnected) {
-      debugPrint('Publishing: $data');
+      log('Publishing: $data');
       final builder = MqttClientPayloadBuilder();
       builder.addString(data);
       state.value?.model.client.publishMessage(topic, qos, builder.payload!);
     } else {
-      debugPrint("Attempt...");
+      log("Attempt...");
       connect();
     }
   }
