@@ -1,17 +1,12 @@
-import 'dart:typed_data';
 import 'dart:convert';
-import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:record/record.dart';
 import 'package:http/http.dart' as http;
-import 'package:http_parser/http_parser.dart';
-import 'package:pcmtowave/pcmtowave.dart';
-import 'package:pcmtowave/convertToWav.dart';
-
 
 class GroqVoiceRecorder extends StatefulWidget {
   final String groqApiKey;
-  final List<String> keywords;
+  final List<String> keywords; // e.g., ['help', 'emergency']
   final void Function(String matchedKeyword)? onKeywordDetected;
 
   const GroqVoiceRecorder({
@@ -27,24 +22,14 @@ class GroqVoiceRecorder extends StatefulWidget {
 
 class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
   final AudioRecorder _recorder = AudioRecorder();
-
   bool _isRecording = false;
   bool _isProcessing = false;
   String _transcription = '';
   String _lastKeyword = '';
-
-  // Accumulate raw PCM data
-  final BytesBuilder _audioBuffer = BytesBuilder();
-  StreamSubscription<Uint8List>? _streamSubscription;
-
-  // Recording configuration (adjust as needed)
-  static const int sampleRate = 16000;
-  static const int numChannels = 1;
-  static const int bitsPerSample = 16;
+  Uint8List? _recordedBytes;
 
   @override
   void dispose() {
-    _streamSubscription?.cancel();
     _recorder.dispose();
     super.dispose();
   }
@@ -52,33 +37,22 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
   Future<void> _startRecording() async {
     final hasPermission = await _recorder.hasPermission();
     if (!hasPermission) {
-      _showSnackBar('Microphone permission denied');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Microphone permission denied')),
+      );
       return;
     }
 
     try {
-      // Clear previous audio data
-      _audioBuffer.clear();
-
-      // Start streaming PCM data
-      final stream = await _recorder.startStream(
-        RecordConfig(
-          encoder: AudioEncoder.pcm16bits,
-          sampleRate: sampleRate,
-          numChannels: numChannels,
-        ),
+      await _recorder.start(
+        const RecordConfig(encoder: AudioEncoder.wav), // WAV is safe
+        path: 'temp_recording.wav', // web uses a blob
       );
-
-      _streamSubscription = stream.listen(
-            (Uint8List data) {
-          _audioBuffer.add(data);
-        },
-        onError: (e) => _showSnackBar('Stream error: $e'),
-      );
-
       setState(() => _isRecording = true);
     } catch (e) {
-      _showSnackBar('Recording failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Recording failed: $e')),
+      );
     }
   }
 
@@ -87,31 +61,23 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
     setState(() => _isProcessing = true);
 
     try {
-      // Stop recording – this closes the stream
-      await _recorder.stop();
-      _streamSubscription?.cancel();
-      _streamSubscription = null;
+      // 1. Stop and get the audio data as bytes
+      final path = await _recorder.stop();
       setState(() => _isRecording = false);
 
-      // Get the accumulated PCM data
-      final pcmData = _audioBuffer.takeBytes();
-      if (pcmData.isEmpty) {
+      // On web, path is a blob URL; we need to fetch it
+      final response = await http.get(Uri.parse(path!));
+      final bytes = response.bodyBytes;
+      if (bytes == null || bytes.isEmpty) {
         throw 'No audio data recorded';
       }
+      _recordedBytes = bytes;
 
-      // Build a proper WAV file from PCM
-      final wavBytes = _buildWav(
-        pcmData,
-        sampleRate: sampleRate,
-        numChannels: numChannels,
-        bitsPerSample: bitsPerSample,
-      );
-
-      // Send to Groq
-      final transcription = await _sendToGroq(wavBytes);
+      // 2. Send to Groq
+      final transcription = await _sendToGroq(bytes);
       setState(() => _transcription = transcription);
 
-      // Check keywords
+      // 3. Check for keywords
       for (final keyword in widget.keywords) {
         if (transcription.toLowerCase().contains(keyword.toLowerCase())) {
           _lastKeyword = keyword;
@@ -122,67 +88,25 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
         }
       }
     } catch (e) {
-      debugPrint('Error: $e');
-      _showSnackBar('Error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     } finally {
       setState(() => _isProcessing = false);
     }
   }
 
-  /// Builds a complete WAV file from raw PCM data
-  Uint8List _buildWav(
-      Uint8List pcmData, {
-        required int sampleRate,
-        required int numChannels,
-        required int bitsPerSample,
-      }) {
-    final byteRate = sampleRate * numChannels * (bitsPerSample ~/ 8);
-    final blockAlign = numChannels * (bitsPerSample ~/ 8);
-    final dataSize = pcmData.length;
-    final totalSize = 36 + dataSize;
-
-    final buffer = ByteData(44); // WAV header is 44 bytes
-    // RIFF header
-    buffer.setUint32(0, 0x52494646, Endian.little); // "RIFF"
-    buffer.setUint32(4, totalSize, Endian.little);
-    buffer.setUint32(8, 0x57415645, Endian.little); // "WAVE"
-    // fmt chunk
-    buffer.setUint32(12, 0x666D7420, Endian.little); // "fmt "
-    buffer.setUint32(16, 16, Endian.little); // chunk size
-    buffer.setUint16(20, 1, Endian.little); // audio format (PCM)
-    buffer.setUint16(22, numChannels, Endian.little);
-    buffer.setUint32(24, sampleRate, Endian.little);
-    buffer.setUint32(28, byteRate, Endian.little);
-    buffer.setUint16(32, blockAlign, Endian.little);
-    buffer.setUint16(34, bitsPerSample, Endian.little);
-    // data chunk
-    buffer.setUint32(36, 0x64617461, Endian.little); // "data"
-    buffer.setUint32(40, dataSize, Endian.little);
-
-    // Combine header + PCM data
-    final headerBytes = buffer.buffer.asUint8List();
-    final wav = Uint8List(44 + dataSize);
-    wav.setAll(0, headerBytes);
-    wav.setAll(44, pcmData);
-    return wav;
-  }
-
   Future<String> _sendToGroq(Uint8List audioBytes) async {
-    debugPrint('Bytes: ${audioBytes.length}');
-    if (audioBytes.length < 1000) {
-      throw 'Recorded audio is too short or empty.';
-    }
-
     final url = Uri.parse('https://api.groq.com/openai/v1/audio/transcriptions');
     final request = http.MultipartRequest('POST', url)
       ..headers['Authorization'] = 'Bearer ${widget.groqApiKey}'
       ..fields['model'] = 'whisper-large-v3-turbo'
+      ..fields['language'] = 'en'
       ..files.add(
         http.MultipartFile.fromBytes(
           'file',
           audioBytes,
           filename: 'recording.wav',
-          contentType: MediaType('audio', 'wav'),
         ),
       );
 
@@ -193,14 +117,11 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
       throw 'Groq API error: $responseBody';
     }
 
-    final json = jsonDecode(responseBody) as Map<String, dynamic>;
-    return json['text'] ?? '';
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+    // Parse JSON
+    final json = Map<String, dynamic>.from(
+      (responseBody).isNotEmpty ? jsonDecode(responseBody) : {},
     );
+    return json['text'] ?? '';
   }
 
   @override

@@ -182,7 +182,7 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
       children: [
         GroqVoiceRecorder(
           groqApiKey: groqKey!,
-          keywords: ["start", "stop", "reset"],
+          keywords: ["start", "stop", "reset","arranque","paro"],
           onKeywordDetected: (result) {
             debugPrint("Voice result: $result");
             setState(() {
