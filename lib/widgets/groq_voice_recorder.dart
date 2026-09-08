@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,11 +11,13 @@ class GroqVoiceRecorder extends StatefulWidget {
   final String groqApiKey;
   final List<String> keywords; // e.g., ['help', 'emergency']
   final void Function(String matchedKeyword)? onKeywordDetected;
+  final void Function(String transcription)? onTranscriptionReceived;
 
   const GroqVoiceRecorder({
     super.key,
     required this.groqApiKey,
     required this.keywords,
+    this.onTranscriptionReceived,
     this.onKeywordDetected,
   });
 
@@ -148,7 +149,12 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
     final json = Map<String, dynamic>.from(
       (responseBody).isNotEmpty ? jsonDecode(responseBody) : {},
     );
-    return json['text'] ?? '';
+    final String transcription = json['text'] ?? '';
+    log("Transcription: $transcription");
+    if (widget.onTranscriptionReceived != null){
+      widget.onTranscriptionReceived?.call(transcription);
+    }
+    return transcription;
   }
 
   @override
@@ -167,73 +173,22 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
       buttonStyle = ElevatedButton.styleFrom(backgroundColor: Colors.red);
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      spacing: 16.0,
-      children: [
-        if (!_isProcessing)
-          GestureDetector(
-            onLongPressStart: (details) => _startRecording(),
-            onLongPressCancel: () => _stop(),
-            onLongPressEnd: (details) => _stopAndTranscribe(),
-            child: ElevatedButton.icon(
-              onPressed: () {},
-              label: Text(buttonText),
-              icon: buttonIcon,
-            ),
-          ),
-        if (_isProcessing)
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: CircularProgressIndicator(),
-          ),
-
-        // Row(
-        //   mainAxisAlignment: MainAxisAlignment.center,
-        //   children: [
-        //     if (!_isRecording)
-        //       ElevatedButton.icon(
-        //         onPressed: _isProcessing ? null : _startRecording,
-        //         icon: const Icon(Icons.mic),
-        //         label: const Text('Start'),
-        //       ),
-        //     if (_isRecording)
-        //       ElevatedButton.icon(
-        //         onPressed: _isProcessing ? null : _stopAndTranscribe,
-        //         icon: const Icon(Icons.stop),
-        //         label: const Text('Stop'),
-        //         style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-        //       ),
-        //     if (_isProcessing)
-        //       const Padding(
-        //         padding: EdgeInsets.all(16.0),
-        //         child: CircularProgressIndicator(),
-        //       ),
-        //   ],
-        // ),
-        if (_transcription.isNotEmpty)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Transcription:',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(_transcription),
-                  const SizedBox(height: 8),
-                  if (_lastKeyword.isNotEmpty)
-                    Text(
-                      '✅ Keyword detected: $_lastKeyword',
-                      style: const TextStyle(color: Colors.green),
-                    ),
-                ],
-              ),
-            ),
-          ),
-      ],
-    );
+    if (!_isProcessing) {
+      return GestureDetector(
+        onLongPressStart: (details) => _startRecording(),
+        onLongPressCancel: () => _stop(),
+        onLongPressEnd: (details) => _stopAndTranscribe(),
+        child: ElevatedButton.icon(
+          onPressed: () {},
+          label: Text(buttonText),
+          icon: buttonIcon,
+        ),
+      );
+    } else {
+      return const Padding(
+        padding: EdgeInsets.all(16.0),
+        child: CircularProgressIndicator(),
+      );
+    }
   }
 }

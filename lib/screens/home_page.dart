@@ -163,7 +163,7 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
     );
   }
 
-  int _matches = 0;
+  String? _match;
 
   Widget _recorder() {
     if (groqKey == null) {
@@ -177,21 +177,22 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       mainAxisSize: MainAxisSize.max,
       spacing: 15.0,
       children: [
+        Expanded(child: Text(_match?? "No matches yet")),
+
         GroqVoiceRecorder(
           groqApiKey: groqKey!,
-          keywords: ["start", "stop", "reset","arranque","paro"],
+          keywords: ["start", "stop", "reset", "arranque", "paro"],
           onKeywordDetected: (result) {
             debugPrint("Voice result: $result");
             setState(() {
-              _matches += 1;
+              _match = result;
             });
           },
         ),
-        Text("$_matches"),
       ],
     );
   }
