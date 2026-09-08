@@ -1,5 +1,5 @@
 import 'dart:convert';
-
+import 'dart:developer';
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
@@ -164,6 +164,7 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   }
 
   String? _match;
+  String? _transcription;
 
   Widget _recorder() {
     if (groqKey == null) {
@@ -174,20 +175,58 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
         ),
       );
     }
-
+    final words = _transcription?.split(' ');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       mainAxisSize: MainAxisSize.max,
       spacing: 15.0,
       children: [
-        Expanded(child: Text(_match?? "No matches yet")),
+        Expanded(
+          child: Center(
+            child: Container(
+              padding: EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: _match != null
+                    ? Colors.lightGreenAccent.withAlpha(55)
+                    : null,
+              ),
+              child: Text(_match ?? "No matches found"),
+            ),
+          ),
+        ),
+        if (words != null)
+          SizedBox(
+            height: 120,
+            child: Container(
+              decoration: BoxDecoration(
+                // color: const Color.fromARGB(65, 158, 158, 158),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withAlpha((255.0 * 0.2).toInt()),
+                    spreadRadius: 4,
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+
+              child: ListView.builder(
+                itemCount: words.length,
+                itemBuilder: (ctx, index) => Center(child: Text(words[index])),
+              ),
+            ),
+          ),
 
         GroqVoiceRecorder(
           groqApiKey: groqKey!,
-          keywords: ["start", "stop", "reset", "arranque", "paro"],
+          keywords: [ "stop","paro", "reset","start", "arranque"],
+          onTranscriptionReceived: (transcription) {
+            _transcription = transcription;
+          },
           onKeywordDetected: (result) {
-            debugPrint("Voice result: $result");
+            log("Voice result: $result");
             setState(() {
               _match = result;
             });

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'mqtt_client_factory.dart';
+import 'dart:developer';
 
 class MqttModel {
   String brokerIP;
@@ -23,21 +24,21 @@ class MqttModel {
       client.websocketProtocols = MqttClientConstants.protocolsSingleDefault;
     }
     client.onAutoReconnect = () {
-      debugPrint("Reconnecting");
+      log("Reconnecting");
     };
 
     client.onConnected = () {
-      debugPrint("COOOOOONENEEEEEECTEEEED");
+      log("COOOOOONENEEEEEECTEEEED");
       onConnectionStateChange?.call(MqttConnectionState.connected);
     };
 
     client.onDisconnected = () {
-      debugPrint('Weird disconnection');
+      log('Weird disconnection');
       onConnectionStateChange?.call(MqttConnectionState.disconnected);
     };
 
     client.onSubscribed = (topic) {
-      debugPrint("Subscribed to $topic");
+      log("Subscribed to $topic");
     };
   }
   void setConnectionMessage(MqttConnectMessage message) {

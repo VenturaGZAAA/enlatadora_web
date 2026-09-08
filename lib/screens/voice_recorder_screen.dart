@@ -1,11 +1,6 @@
 
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:typed_data';
-import 'package:record/record.dart';
-import 'package:http/http.dart' as http;
 
 class VoiceRecorderScreen extends MqttThingScreen {
   const VoiceRecorderScreen({super.key}): super(rootTopico: "");

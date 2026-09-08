@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 class GroqVoiceRecorder extends StatefulWidget {
   final String groqApiKey;
   final List<String> keywords; // e.g., ['help', 'emergency']
-  final void Function(String matchedKeyword)? onKeywordDetected;
+  final void Function(String? matchedKeyword)? onKeywordDetected;
   final void Function(String transcription)? onTranscriptionReceived;
 
   const GroqVoiceRecorder({
@@ -29,8 +29,6 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
   final AudioRecorder _recorder = AudioRecorder();
   bool _isRecording = false;
   bool _isProcessing = false;
-  String _transcription = '';
-  String _lastKeyword = '';
 
   @override
   void dispose() {
@@ -95,23 +93,26 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
         log("Path: ${file.path}");
         bytes = await file.readAsBytes();
       }
-      if (bytes == null || bytes.isEmpty) {
+      if (bytes.isEmpty) {
         throw 'No audio data recorded';
       }
 
       // 2. Send to Groq
       final transcription = await _sendToGroq(bytes);
-      setState(() => _transcription = transcription);
 
+      bool detected = false;
       // 3. Check for keywords
       for (final keyword in widget.keywords) {
         if (transcription.toLowerCase().contains(keyword.toLowerCase())) {
-          _lastKeyword = keyword;
           if (widget.onKeywordDetected != null) {
             widget.onKeywordDetected!(keyword);
           }
+          detected = true;
           break;
         }
+      }
+      if (!detected && widget.onKeywordDetected != null) {
+        widget.onKeywordDetected!(null);
       }
     } catch (e) {
       ScaffoldMessenger.of(

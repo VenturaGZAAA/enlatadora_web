@@ -1,7 +1,6 @@
 import 'dart:html' as html;
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_browser_client.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 MqttClient createMqttClient(String broker, String clientId, int port) {
   final ipp = html.window.location.hostname;
