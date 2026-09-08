@@ -177,6 +177,8 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.max,
       spacing: 15.0,
       children: [
         GroqVoiceRecorder(

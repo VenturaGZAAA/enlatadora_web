@@ -30,7 +30,6 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
   bool _isProcessing = false;
   String _transcription = '';
   String _lastKeyword = '';
-  Uint8List? _recordedBytes;
 
   @override
   void dispose() {
@@ -55,21 +54,28 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
         path = "${dir.path}/$path";
       }
 
-
       await _recorder.start(
         const RecordConfig(encoder: AudioEncoder.wav), // WAV is safe
         path: path, // web uses a blob
       );
       setState(() => _isRecording = true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Recording failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Recording failed: $e')));
     }
+  }
+
+  Future<void> _stop() async {
+    if (!_isRecording) return;
+    log("Stoping");
+    _recorder.stop();
+    setState(() => _isRecording = false);
   }
 
   Future<void> _stopAndTranscribe() async {
     if (!_isRecording) return;
+    log("Stoping and transcribing");
     setState(() => _isProcessing = true);
 
     try {
@@ -79,12 +85,11 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
 
       Uint8List? bytes;
 
-      if (kIsWeb){
+      if (kIsWeb) {
         // On web, path is a blob URL; we need to fetch it
         final response = await http.get(Uri.parse(path!));
         bytes = response.bodyBytes;
-      }
-      else {
+      } else {
         final file = File.fromUri(Uri.parse(path!));
         log("Path: ${file.path}");
         bytes = await file.readAsBytes();
@@ -92,7 +97,6 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
       if (bytes == null || bytes.isEmpty) {
         throw 'No audio data recorded';
       }
-      _recordedBytes = bytes;
 
       // 2. Send to Groq
       final transcription = await _sendToGroq(bytes);
@@ -109,16 +113,18 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
         }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       setState(() => _isProcessing = false);
     }
   }
 
   Future<String> _sendToGroq(Uint8List audioBytes) async {
-    final url = Uri.parse('https://api.groq.com/openai/v1/audio/transcriptions');
+    final url = Uri.parse(
+      'https://api.groq.com/openai/v1/audio/transcriptions',
+    );
     final request = http.MultipartRequest('POST', url)
       ..headers['Authorization'] = 'Bearer ${widget.groqApiKey}'
       ..fields['model'] = 'whisper-large-v3-turbo'
@@ -147,33 +153,64 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
 
   @override
   Widget build(BuildContext context) {
+    late String buttonText;
+    late Icon buttonIcon;
+    ButtonStyle? buttonStyle;
+    late void Function() buttonFunction;
+
+    if (!_isRecording) {
+      buttonText = 'Start';
+      buttonIcon = Icon(Icons.mic);
+    } else {
+      buttonText = 'Stop';
+      buttonIcon = Icon(Icons.stop);
+      buttonStyle = ElevatedButton.styleFrom(backgroundColor: Colors.red);
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
+      spacing: 16.0,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (!_isRecording)
-              ElevatedButton.icon(
-                onPressed: _isProcessing ? null : _startRecording,
-                icon: const Icon(Icons.mic),
-                label: const Text('Start'),
-              ),
-            if (_isRecording)
-              ElevatedButton.icon(
-                onPressed: _isProcessing ? null : _stopAndTranscribe,
-                icon: const Icon(Icons.stop),
-                label: const Text('Stop & Transcribe'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              ),
-            if (_isProcessing)
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
+        if (!_isProcessing)
+          GestureDetector(
+            onLongPressStart: (details) => _startRecording(),
+            onLongPressCancel: () => _stop(),
+            onLongPressEnd: (details) => _stopAndTranscribe(),
+            child: ElevatedButton.icon(
+              onPressed: () {},
+              label: Text(buttonText),
+              icon: buttonIcon,
+            ),
+          ),
+        if (_isProcessing)
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: CircularProgressIndicator(),
+          ),
+
+        // Row(
+        //   mainAxisAlignment: MainAxisAlignment.center,
+        //   children: [
+        //     if (!_isRecording)
+        //       ElevatedButton.icon(
+        //         onPressed: _isProcessing ? null : _startRecording,
+        //         icon: const Icon(Icons.mic),
+        //         label: const Text('Start'),
+        //       ),
+        //     if (_isRecording)
+        //       ElevatedButton.icon(
+        //         onPressed: _isProcessing ? null : _stopAndTranscribe,
+        //         icon: const Icon(Icons.stop),
+        //         label: const Text('Stop'),
+        //         style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+        //       ),
+        //     if (_isProcessing)
+        //       const Padding(
+        //         padding: EdgeInsets.all(16.0),
+        //         child: CircularProgressIndicator(),
+        //       ),
+        //   ],
+        // ),
         if (_transcription.isNotEmpty)
           Card(
             child: Padding(
