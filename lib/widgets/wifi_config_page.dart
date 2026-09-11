@@ -26,7 +26,6 @@ class WifiConfigPageState extends ConsumerState<WifiConfigPage> {
   @override
   void initState() {
     super.initState();
-    mqttNotifier = ref.read(mqttProvider.notifier);
     mate();
   }
 
@@ -38,6 +37,7 @@ class WifiConfigPageState extends ConsumerState<WifiConfigPage> {
   }
 
   Future<void> mate() async {
+    mqttNotifier = ref.read(mqttProvider.notifier);
     await mqttNotifier.connect();
   }
 

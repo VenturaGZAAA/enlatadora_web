@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:enlatadora_web/screens/home_page.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(ProviderScope(child: MyApp()));
 }
 
