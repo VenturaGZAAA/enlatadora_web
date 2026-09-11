@@ -48,4 +48,6 @@ app.*.map.json
 .widget_preview/
 .env
 assets/.env
+config_esp.json
+config.json
 temp_recording.wav

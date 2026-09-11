@@ -2,7 +2,7 @@
 
 rm -rf ./build/web
 
-flutter build web --release
+flutter build web --release --dart-define-from-file=config_esp.json
 
 cd build/web || exit 1
 

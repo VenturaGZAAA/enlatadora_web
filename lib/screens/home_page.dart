@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:enlatadora_web/models/app_config.dart';
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
@@ -8,7 +9,6 @@ import 'package:enlatadora_web/widgets/helpers.dart';
 import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 
 class HomePage extends MqttThingScreen {
@@ -31,8 +31,6 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
     _recorder,
     _configBody,
   ];
-
-  String? groqKey;
 
   int _currentScreenIndex = 0;
 
@@ -63,10 +61,6 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   void initState() {
     appbarActions.add(MqttConfigButton());
     super.initState();
-    const key = ['GROQ_KEY'];
-    if (dotenv.isEveryDefined(key)) {
-      groqKey = dotenv.get(key[0]);
-    }
   }
 
   @override
@@ -167,7 +161,7 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
   String? _transcription;
 
   Widget _recorder() {
-    if (groqKey == null) {
+    if (AppConfig.groqKey.length < 5) {
       return Center(
         child: Text(
           "GROQ_KEY not found in .env file",
@@ -220,10 +214,12 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
           ),
 
         GroqVoiceRecorder(
-          groqApiKey: groqKey!,
-          keywords: [ "stop","paro", "reset","start", "arranque"],
+          groqApiKey: AppConfig.groqKey,
+          keywords: ["stop", "paro", "reset", "start", "arranque"],
           onTranscriptionReceived: (transcription) {
-            _transcription = transcription;
+            setState(() {
+              _transcription = transcription;
+            });
           },
           onKeywordDetected: (result) {
             log("Voice result: $result");
