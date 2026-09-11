@@ -1,10 +1,11 @@
 import 'dart:convert';
-import 'dart:developer';
-import 'package:enlatadora_web/models/app_config.dart';
+// import 'dart:developer';
+// import 'package:enlatadora_web/models/app_config.dart';
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
-import 'package:enlatadora_web/widgets/groq_voice_recorder.dart';
+import 'package:enlatadora_web/screens/voice_recorder_screen.dart';
+
 import 'package:enlatadora_web/widgets/helpers.dart';
 import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
@@ -157,79 +158,9 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
     );
   }
 
-  String? _match;
-  String? _transcription;
 
   Widget _recorder() {
-    if (AppConfig.groqKey.length < 5) {
-      return Center(
-        child: Text(
-          "GROQ_KEY not found in .env file",
-          style: TextStyle(color: Colors.red),
-        ),
-      );
-    }
-    final words = _transcription?.split(' ');
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      mainAxisSize: MainAxisSize.max,
-      spacing: 15.0,
-      children: [
-        Expanded(
-          child: Center(
-            child: Container(
-              padding: EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                color: _match != null
-                    ? Colors.lightGreenAccent.withAlpha(55)
-                    : null,
-              ),
-              child: Text(_match ?? "No matches found"),
-            ),
-          ),
-        ),
-        if (words != null)
-          SizedBox(
-            height: 120,
-            child: Container(
-              decoration: BoxDecoration(
-                // color: const Color.fromARGB(65, 158, 158, 158),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withAlpha((255.0 * 0.2).toInt()),
-                    spreadRadius: 4,
-                    blurRadius: 10,
-                  ),
-                ],
-              ),
-
-              child: ListView.builder(
-                itemCount: words.length,
-                itemBuilder: (ctx, index) => Center(child: Text(words[index])),
-              ),
-            ),
-          ),
-
-        GroqVoiceRecorder(
-          groqApiKey: AppConfig.groqKey,
-          keywords: ["stop", "paro", "reset", "start", "arranque"],
-          onTranscriptionReceived: (transcription) {
-            setState(() {
-              _transcription = transcription;
-            });
-          },
-          onKeywordDetected: (result) {
-            log("Voice result: $result");
-            setState(() {
-              _match = result;
-            });
-          },
-        ),
-      ],
-    );
+    return VoiceRecorderScreen();
   }
 
   Widget _configBody() {
