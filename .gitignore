@@ -47,7 +47,8 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 .env
+environment/*
 assets/.env
-config_esp.json
-config.json
+environment/config_esp.json
+environment/config.json
 temp_recording.wav
