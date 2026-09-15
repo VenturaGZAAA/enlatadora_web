@@ -1,3 +1,4 @@
+import 'package:enlatadora_web/providers/recording_provider.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:flutter/material.dart';
 // import 'package:mqtt_client/mqtt_client.dart';
@@ -59,6 +60,9 @@ class _VoiceRecorderScreenState
       mainAxisSize: MainAxisSize.max,
       spacing: 15.0,
       children: [
+        if (ref.watch(recordingProvider.notifier).isRecording)
+          Text("We are listeningggg"),
+
         Expanded(
           child: Center(
             child: Container(

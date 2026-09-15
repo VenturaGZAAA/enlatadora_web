@@ -1,13 +1,15 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
+import 'package:enlatadora_web/providers/recording_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:http/http.dart' as http;
 
-class GroqVoiceRecorder extends StatefulWidget {
+class GroqVoiceRecorder extends ConsumerStatefulWidget {
   final String groqApiKey;
   final List<String> keywords; // e.g., ['help', 'emergency']
   final void Function(String? matchedKeyword)? onKeywordDetected;
@@ -22,13 +24,21 @@ class GroqVoiceRecorder extends StatefulWidget {
   });
 
   @override
-  State<GroqVoiceRecorder> createState() => _GroqVoiceRecorderState();
+  ConsumerState<ConsumerStatefulWidget> createState() {
+    return _GroqVoiceRecorderState();
+  }
+
 }
 
-class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
+class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
   final AudioRecorder _recorder = AudioRecorder();
-  bool _isRecording = false;
-  bool _isProcessing = false;
+
+
+  @override
+  void initState() {
+    super.initState();
+
+  }
 
   @override
   void dispose() {
@@ -38,6 +48,9 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
   }
 
   Future<void> _startRecording() async {
+    log("Startiiiiiiiiiing");
+    final recNotifier = ref.read(recordingProvider.notifier);
+    if (recNotifier.isProcessing || recNotifier.isRecording) return;
     final hasPermission = await _recorder.hasPermission(request: true);
     if (!hasPermission) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -57,7 +70,7 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
         const RecordConfig(encoder: AudioEncoder.wav), // WAV is safe
         path: path, // web uses a blob
       );
-      setState(() => _isRecording = true);
+      ref.read(recordingProvider.notifier).recordingStart();
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -66,21 +79,25 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
   }
 
   Future<void> _stop() async {
-    if (!_isRecording) return;
+    log("Stepin");
+    final recNotifier = ref.read(recordingProvider.notifier);
+    if (!recNotifier.isRecording || recNotifier.isProcessing) return;
     log("Stoping");
     _recorder.stop();
-    setState(() => _isRecording = false);
+    ref.read(recordingProvider.notifier).recordingStop();
   }
 
   Future<void> _stopAndTranscribe() async {
-    if (!_isRecording) return;
+    log("Hard stop");
+    final recNotifier = ref.read(recordingProvider.notifier);
+    if (!recNotifier.isRecording || recNotifier.isProcessing) return;
     log("Stoping and transcribing");
-    setState(() => _isProcessing = true);
+    ref.read(recordingProvider.notifier).startProcess();
 
     try {
       // 1. Stop and get the audio data as bytes
       final path = await _recorder.stop();
-      setState(() => _isRecording = false);
+      ref.read(recordingProvider.notifier).recordingStop();
 
       Uint8List? bytes;
 
@@ -98,8 +115,8 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
       }
 
       // 2. Send to Groq
-      final transcription = await _sendToGroq(bytes);
-
+      // final transcription = await _sendToGroq(bytes);
+      final transcription = "homiees";
       bool detected = false;
       // 3. Check for keywords
       for (final keyword in widget.keywords) {
@@ -119,7 +136,7 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      setState(() => _isProcessing = false);
+      ref.read(recordingProvider.notifier).stopProcess();
     }
   }
 
@@ -158,23 +175,22 @@ class _GroqVoiceRecorderState extends State<GroqVoiceRecorder> {
     return transcription;
   }
 
+
   @override
   Widget build(BuildContext context) {
     late String buttonText;
     late Icon buttonIcon;
-    ButtonStyle? buttonStyle;
-    late void Function() buttonFunction;
+    final state = ref.watch(recordingProvider.notifier);
 
-    if (!_isRecording) {
+    if (!state.isRecording) {
       buttonText = 'Start';
       buttonIcon = Icon(Icons.mic);
     } else {
       buttonText = 'Stop';
       buttonIcon = Icon(Icons.stop);
-      buttonStyle = ElevatedButton.styleFrom(backgroundColor: Colors.red);
-    }
 
-    if (!_isProcessing) {
+    }
+    if (!state.isProcessing) {
       return GestureDetector(
         onLongPressStart: (details) => _startRecording(),
         onLongPressCancel: () => _stop(),

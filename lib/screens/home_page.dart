@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'dart:ffi';
 
-import 'package:enlatadora_web/models/home_state.dart';
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/providers/recording_provider.dart';
@@ -91,18 +89,18 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
 
   Widget _layout() {
     if (_wiFiState != null && _wiFiState!.isInvalid()) {
-      ref.read(homeProvider).page = HomePage.config;
+      ref.read(homeProvider.notifier).goToConfig();
     }
     return Scaffold(
       appBar: AppBar(
         title: Text(super.widget.name),
         actions: [
-          ...switch (ref.read(homeProvider).page) {
+          ...switch (ref.read(homeProvider)) {
             HomePage.control => [],
             HomePage.voice => [
               Icon(
                 Icons.record_voice_over,
-                color: ref.watch(recordingProvider).isRecording
+                color: ref.watch(recordingProvider.notifier).isRecording
                     ? Colors.lightGreen
                     : null,
               ),
@@ -116,16 +114,14 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
           width: double.infinity,
           height: double.infinity,
           padding: EdgeInsets.all(25),
-          child: screens[ref.read(homeProvider).page.index].call(),
+          child: screens[ref.watch(homeProvider).index].call(),
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: ref.watch(homeProvider).page.index,
+        selectedIndex: ref.watch(homeProvider).index,
         onDestinationSelected: (index) {
-          setState(() {
-            ref.read(homeProvider).page = HomePage.values[index];
-          });
-          if (ref.read(homeProvider).page == HomePage.config) {
+          ref.read(homeProvider.notifier).page = HomePage.values[index];
+          if (ref.read(homeProvider) == HomePage.config) {
             _wiFiState = null;
           }
         },
@@ -166,10 +162,10 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
           onPressed: () {
             // debugPrint("It's me dad!");
             if (!mqttNotifier.isConnected()) {
+              ref.read(homeProvider.notifier).goToConfig();
               ScaffoldMessenger.maybeOf(
                 context,
               )?.showSnackBar(SnackBar(content: Text("Not connected bro")));
-              ref.read(homeProvider).goToConfig();
             }
             mqttNotifier.publish(ledTopic, "Hello from the dashboard");
           },
