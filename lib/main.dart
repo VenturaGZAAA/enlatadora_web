@@ -42,7 +42,7 @@ class MyApp extends ConsumerWidget {
         textTheme: textTheme,
       ),
       themeMode: ThemeMode.system,
-      home: const HomePage(rootTopico: 'home/test/'),
+      home: const HomeScreen(rootTopico: 'home/test/'),
     );
   }
 }

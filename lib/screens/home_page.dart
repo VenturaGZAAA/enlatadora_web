@@ -1,19 +1,24 @@
 import 'dart:convert';
-// import 'dart:developer';
-// import 'package:enlatadora_web/models/app_config.dart';
+import 'dart:ffi';
+
+import 'package:enlatadora_web/models/home_state.dart';
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
+import 'package:enlatadora_web/providers/recording_provider.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:enlatadora_web/screens/voice_recorder_screen.dart';
 
 import 'package:enlatadora_web/widgets/helpers.dart';
 import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
+import 'package:enlatadora_web/widgets/reset_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
 import 'package:flutter/material.dart';
 import 'package:mqtt_client/mqtt_client.dart';
+import 'package:enlatadora_web/providers/home_state_provider.dart';
 
-class HomePage extends MqttThingScreen {
-  const HomePage({super.key, required super.rootTopico}) : super(name: "home");
+class HomeScreen extends MqttThingScreen {
+  const HomeScreen({super.key, required super.rootTopico})
+    : super(name: "home");
 
   @override
   MqttThingScreenState<MqttThingScreen> createState() {
@@ -21,7 +26,7 @@ class HomePage extends MqttThingScreen {
   }
 }
 
-class _HomePageState extends MqttThingScreenState<HomePage> {
+class _HomePageState extends MqttThingScreenState<HomeScreen> {
   late final String ledTopic = "${widget.rootTopico}led";
   late final String readTopic = "${widget.rootTopico}read";
 
@@ -33,7 +38,7 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
     _configBody,
   ];
 
-  int _currentScreenIndex = 0;
+  // int _currentScreenIndex = 0;
 
   final List<MockData> reads = List.empty(growable: true);
   static const int MAX_ITEMS = 50;
@@ -55,12 +60,11 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
           _wiFiState = WiFiState.fromJson(jsonDecode(content));
         });
       } finally {}
-    });
+    }, qos: MqttQos.atLeastOnce);
   }
 
   @override
   void initState() {
-    appbarActions.add(MqttConfigButton());
     super.initState();
   }
 
@@ -87,25 +91,41 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
 
   Widget _layout() {
     if (_wiFiState != null && _wiFiState!.isInvalid()) {
-      _currentScreenIndex = 2;
+      ref.read(homeProvider).page = HomePage.config;
     }
     return Scaffold(
-      appBar: AppBar(title: Text(super.widget.name), actions: appbarActions),
+      appBar: AppBar(
+        title: Text(super.widget.name),
+        actions: [
+          ...switch (ref.read(homeProvider).page) {
+            HomePage.control => [],
+            HomePage.voice => [
+              Icon(
+                Icons.record_voice_over,
+                color: ref.watch(recordingProvider).isRecording
+                    ? Colors.lightGreen
+                    : null,
+              ),
+            ],
+            HomePage.config => [MqttConfigButton()],
+          },
+        ],
+      ),
       body: Center(
         child: Container(
           width: double.infinity,
           height: double.infinity,
           padding: EdgeInsets.all(25),
-          child: screens[_currentScreenIndex].call(),
+          child: screens[ref.read(homeProvider).page.index].call(),
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentScreenIndex,
+        selectedIndex: ref.watch(homeProvider).page.index,
         onDestinationSelected: (index) {
           setState(() {
-            _currentScreenIndex = index;
+            ref.read(homeProvider).page = HomePage.values[index];
           });
-          if (_currentScreenIndex == 2) {
+          if (ref.read(homeProvider).page == HomePage.config) {
             _wiFiState = null;
           }
         },
@@ -149,6 +169,7 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
               ScaffoldMessenger.maybeOf(
                 context,
               )?.showSnackBar(SnackBar(content: Text("Not connected bro")));
+              ref.read(homeProvider).goToConfig();
             }
             mqttNotifier.publish(ledTopic, "Hello from the dashboard");
           },
@@ -157,7 +178,6 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
       ],
     );
   }
-
 
   Widget _recorder() {
     return VoiceRecorderScreen();
@@ -169,31 +189,7 @@ class _HomePageState extends MqttThingScreenState<HomePage> {
       mainAxisSize: MainAxisSize.max,
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       spacing: 15,
-      children: [WifiConfigPage(), _resetButton()],
-    );
-  }
-
-  Widget _resetButton() {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color.fromARGB(117, 244, 67, 54),
-        foregroundColor: Colors.white,
-      ).merge(Theme.of(context).elevatedButtonTheme.style),
-      onPressed: () async {
-        bool reset = await showConfirmDialog(
-          context,
-          title: "Reset the ESP32?",
-        );
-        if (reset) {
-          mqttNotifier.publish("admin/reset/request", "1");
-          if (mounted) {
-            ScaffoldMessenger.maybeOf(
-              context,
-            )?.showSnackBar(SnackBar(content: Text("Reset request sent")));
-          }
-        }
-      },
-      child: Text("Reset the ESP-32"),
+      children: [WifiConfigPage(), ResetButton()],
     );
   }
 }

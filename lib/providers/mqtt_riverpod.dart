@@ -4,7 +4,7 @@ import 'package:mqtt_client/mqtt_client.dart';
 import 'dart:developer';
 import 'dart:io';
 
-import 'package:enlatadora_web/models/mqtt_client_model.dart';
+import 'package:enlatadora_web/models/mqtt_model/mqtt_client_model.dart';
 
 
 class MqttNotifier extends AsyncNotifier<MqttState>
