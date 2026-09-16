@@ -32,6 +32,7 @@ class GroqVoiceRecorder extends ConsumerStatefulWidget {
 
 class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
   final AudioRecorder _recorder = AudioRecorder();
+  bool _isProcessing = false;
 
 
   @override
@@ -50,7 +51,7 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
   Future<void> _startRecording() async {
     log("Startiiiiiiiiiing");
     final recNotifier = ref.read(recordingProvider.notifier);
-    if (recNotifier.isProcessing || recNotifier.isRecording) return;
+    if (_isProcessing || recNotifier.isRecording) return;
     final hasPermission = await _recorder.hasPermission(request: true);
     if (!hasPermission) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -81,7 +82,7 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
   Future<void> _stop() async {
     log("Stepin");
     final recNotifier = ref.read(recordingProvider.notifier);
-    if (!recNotifier.isRecording || recNotifier.isProcessing) return;
+    if (!recNotifier.isRecording || _isProcessing) return;
     log("Stoping");
     _recorder.stop();
     ref.read(recordingProvider.notifier).recordingStop();
@@ -90,10 +91,12 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
   Future<void> _stopAndTranscribe() async {
     log("Hard stop");
     final recNotifier = ref.read(recordingProvider.notifier);
-    if (!recNotifier.isRecording || recNotifier.isProcessing) return;
+    if (!recNotifier.isRecording || _isProcessing) return;
     log("Stoping and transcribing");
-    ref.read(recordingProvider.notifier).startProcess();
 
+    setState(() {
+      _isProcessing = true;
+    });
     try {
       // 1. Stop and get the audio data as bytes
       final path = await _recorder.stop();
@@ -115,8 +118,10 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
       }
 
       // 2. Send to Groq
-      // final transcription = await _sendToGroq(bytes);
-      final transcription = "homiees";
+      final transcription = await _sendToGroq(bytes);
+      //gota find this quickly
+
+
       bool detected = false;
       // 3. Check for keywords
       for (final keyword in widget.keywords) {
@@ -136,7 +141,9 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      ref.read(recordingProvider.notifier).stopProcess();
+      setState(() {
+        _isProcessing = false;
+      });
     }
   }
 
@@ -180,9 +187,9 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
   Widget build(BuildContext context) {
     late String buttonText;
     late Icon buttonIcon;
-    final state = ref.watch(recordingProvider.notifier);
+    final state = ref.watch(recordingProvider);
 
-    if (!state.isRecording) {
+    if (!state) {
       buttonText = 'Start';
       buttonIcon = Icon(Icons.mic);
     } else {
@@ -190,7 +197,7 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
       buttonIcon = Icon(Icons.stop);
 
     }
-    if (!state.isProcessing) {
+    if (!_isProcessing) {
       return GestureDetector(
         onLongPressStart: (details) => _startRecording(),
         onLongPressCancel: () => _stop(),

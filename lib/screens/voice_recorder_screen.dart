@@ -60,7 +60,7 @@ class _VoiceRecorderScreenState
       mainAxisSize: MainAxisSize.max,
       spacing: 15.0,
       children: [
-        if (ref.watch(recordingProvider.notifier).isRecording)
+        if (ref.watch(recordingProvider))
           Text("We are listeningggg"),
 
         Expanded(

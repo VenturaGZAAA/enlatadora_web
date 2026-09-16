@@ -100,7 +100,7 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
             HomePage.voice => [
               Icon(
                 Icons.record_voice_over,
-                color: ref.watch(recordingProvider.notifier).isRecording
+                color: ref.watch(recordingProvider)
                     ? Colors.lightGreen
                     : null,
               ),
