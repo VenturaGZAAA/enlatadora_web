@@ -50,5 +50,5 @@ app.*.map.json
 environment/*
 assets/.env
 environment/config_esp.json
-environment/config.json
+environment/config_release.json
 temp_recording.wav

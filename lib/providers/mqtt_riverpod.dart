@@ -1,3 +1,4 @@
+import 'package:enlatadora_web/models/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mqtt_client/mqtt_client.dart';
@@ -6,24 +7,21 @@ import 'dart:io';
 
 import 'package:enlatadora_web/models/mqtt_model/mqtt_client_model.dart';
 
-
 class MqttNotifier extends AsyncNotifier<MqttState>
     with WidgetsBindingObserver {
   @override
   Future<MqttState> build() async {
     WidgetsBinding.instance.addObserver(this);
 
-    final MqttModel model = MqttModel(brokerIP: "192.168.10.100");
+    final MqttModel model = MqttModel(brokerIP: AppConfig.broker_ip);
 
     // Set up the callback to update state when connection changes
     model.onConnectionStateChange = (newState) {
       log('Connection state changed to: $newState');
       if (state.value != null) {
-        // This triggers UI rebuilds
         state = AsyncData(state.value!.copyWith(connectionState: newState));
       }
     };
-    log("Oh genki ya na");
     return MqttState(
       model: model,
       connectionState: MqttConnectionState.disconnected,
@@ -37,11 +35,11 @@ class MqttNotifier extends AsyncNotifier<MqttState>
       case AppLifecycleState.paused:
       case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
-      if (this.state.value?.isConnected == true) {
-        log('App moving to background, disconnecting MQTT...');
-        disconnect(manual: false);
-      }
-      break;
+        if (this.state.value?.isConnected == true) {
+          log('App moving to background, disconnecting MQTT...');
+          disconnect(manual: false);
+        }
+        break;
       case AppLifecycleState.inactive:
         if (this.state.value?.isConnected == true) {
           log('App moving to background, disconnecting MQTT...');
@@ -49,7 +47,6 @@ class MqttNotifier extends AsyncNotifier<MqttState>
         }
         break;
       case AppLifecycleState.resumed:
-        // You could call connect() here if you want auto-reconnect
         if (this.state.value?.model.manualDisconnect == false) {
           connect();
         }
@@ -100,11 +97,11 @@ class MqttNotifier extends AsyncNotifier<MqttState>
         log('Connected!');
 
         for (final topic in subscriptions.keys) {
-          // subscribe(topic, subscriptions[topic]!.callback, qos: subscriptions[topic]!.qos);
           state.value!.model.client.subscribe(topic, subscriptions[topic]!.qos);
         }
 
         _listenTopics();
+
         state = AsyncData(
           state.value!.copyWith(connectionState: MqttConnectionState.connected),
         );
@@ -174,7 +171,7 @@ class MqttNotifier extends AsyncNotifier<MqttState>
   }) {
     subscriptions.putIfAbsent(
       topic,
-          () => MqttSubscriptionData(callback: callback, qos: qos),
+      () => MqttSubscriptionData(callback: callback, qos: qos),
     );
     if (!isConnected()) {
       log("Can not subscribe, not connected");

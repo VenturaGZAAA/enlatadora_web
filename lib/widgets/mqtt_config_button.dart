@@ -62,7 +62,7 @@ class _MqttConfigButtonState extends ConsumerState<MqttConfigButton> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: Text("Regresar"),
+                child: Text("Return"),
               ),
               TextButton(
                 onPressed: () {
@@ -73,7 +73,7 @@ class _MqttConfigButtonState extends ConsumerState<MqttConfigButton> {
                   if (portController.text.isNotEmpty) {
                     ref
                         .read(mqttProvider.notifier)
-                        .setPoort(ipController.text as int);
+                        .setPoort(int.parse(ipController.text));
                   }
 
                 },

@@ -89,7 +89,9 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
 
   Widget _layout() {
     if (_wiFiState != null && _wiFiState!.isInvalid()) {
-      ref.read(homeProvider.notifier).goToConfig();
+      setState(() {
+        ref.read(homeProvider.notifier).goToConfig();
+      });
     }
     return Scaffold(
       appBar: AppBar(
@@ -100,10 +102,9 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
             HomePage.voice => [
               Icon(
                 Icons.record_voice_over,
-                color: ref.watch(recordingProvider)
-                    ? Colors.lightGreen
-                    : null,
+                color: ref.watch(recordingProvider) ? Colors.lightGreen : null,
               ),
+              SizedBox(width: 5),
             ],
             HomePage.config => [MqttConfigButton()],
           },

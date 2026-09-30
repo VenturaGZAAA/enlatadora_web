@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:flutter/material.dart';
@@ -105,7 +106,7 @@ class WifiConfigPageState extends ConsumerState<WifiConfigPage> {
     final String pass = _passController.text;
 
     if (!mounted) {
-      debugPrint("Wifi config not mounted");
+      log("Wifi config not mounted");
       return;
     }
     // Optional: Show confirmation before sending
@@ -156,7 +157,9 @@ class WifiConfigPageState extends ConsumerState<WifiConfigPage> {
             Checkbox(
               value: _apModeCheck,
               onChanged: (value) {
-                _apModeCheck = value ?? false;
+                setState(() {
+                  _apModeCheck = value ?? false;
+                });
               },
             ),
           ],
