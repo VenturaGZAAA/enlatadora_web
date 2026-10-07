@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/providers/recording_provider.dart';
+import 'package:enlatadora_web/screens/can_test_page.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:enlatadora_web/screens/voice_recorder_screen.dart';
 
@@ -28,10 +29,12 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   late final String ledTopic = "${widget.rootTopico}led";
   late final String readTopic = "${widget.rootTopico}read";
 
+  bool _wifiUpdated = false;
   WiFiState? _wiFiState;
 
   late List<Widget Function()> screens = [
-    _dashboardBody,
+    // _dashboardBody,
+    () => CanTestPage(),
     _recorder,
     _configBody,
   ];
@@ -88,9 +91,10 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   }
 
   Widget _layout() {
-    if (_wiFiState != null && _wiFiState!.isInvalid()) {
+    if (_wiFiState != null && _wiFiState!.isInvalid() && !_wifiUpdated) {
       setState(() {
         ref.read(homeProvider.notifier).goToConfig();
+        _wifiUpdated = true;
       });
     }
     return Scaffold(
