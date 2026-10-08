@@ -16,6 +16,7 @@ class CanTestPage extends MqttThingScreen {
 class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
   static const numOutputs = 19;
   static const numInputs = 8;
+  static const _maxItemWith = 100.0;
 
   final List<bool> outputs = List.filled(numOutputs, false);
   final List<bool> inputs = List.filled(numInputs, false);
@@ -85,10 +86,11 @@ class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
 
   Widget _outputsView() {
     return GridView.builder(
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: _maxItemWith,
         crossAxisSpacing: 5,
         mainAxisSpacing: 5,
+        childAspectRatio: 1,
       ),
       itemCount: numOutputs,
       itemBuilder: (context, index) => Card.outlined(
@@ -97,12 +99,7 @@ class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-              child: Icon(
-                Icons.lightbulb,
-                color: outputs[index] ? Colors.yellow : null,
-              ),
-            ),
+            Icon(Icons.lightbulb, color: outputs[index] ? Colors.yellow : null),
             Text("$index"),
           ],
         ),
@@ -112,10 +109,11 @@ class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
 
   Widget _inputsView() {
     return GridView.builder(
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: _maxItemWith,
+        crossAxisSpacing: 5,
+        mainAxisSpacing: 5,
+        childAspectRatio: 1,
       ),
       itemCount: numInputs,
       itemBuilder: (context, index) => Card.outlined(
@@ -124,19 +122,17 @@ class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-              child: IconButton(
-                onPressed: () {
-                  Map<String, bool> input = {"I$index": !inputs[index]};
-                  mqttNotifier.publish(
-                    "machine/IO/inputs/write",
-                    jsonEncode(input),
-                  );
-                },
-                icon: Icon(
-                  Icons.electric_bolt,
-                  color: inputs[index] ? Colors.yellow : null,
-                ),
+            IconButton(
+              onPressed: () {
+                Map<String, bool> input = {"I$index": !inputs[index]};
+                mqttNotifier.publish(
+                  "machine/IO/inputs/write",
+                  jsonEncode(input),
+                );
+              },
+              icon: Icon(
+                Icons.electric_bolt,
+                color: inputs[index] ? Colors.yellow : null,
               ),
             ),
             Text("$index"),

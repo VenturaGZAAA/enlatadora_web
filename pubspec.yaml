@@ -23,14 +23,32 @@ dependencies:
   http: ^1.6.0
   http_parser: ^4.1.2
   path_provider: ^2.1.6
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   build_runner: ^2.4.0
   json_serializable: ^6.9.0
-
-
+  flutter_launcher_icons: ^0.14.4
   flutter_lints: ^6.0.0
+
+flutter_launcher_icons:
+  image_path: "assets/android-app-icon.png"
+
+  android: true
+  adaptive_icon_background: "#252525"
+  adaptive_icon_foreground: "assets/android-icon-foreground.png"
+
+  web:
+    generate: true
+    image_path: "assets/android-app-icon.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
+
+  windows:
+    generate: true
+    image_path: "assets/android-app-icon.png"
+    icon_size: 128 # min:48, max:256
 
 
 flutter:

@@ -33,8 +33,7 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   WiFiState? _wiFiState;
 
   late List<Widget Function()> screens = [
-    // _dashboardBody,
-    () => CanTestPage(),
+    _dashboardBody,
     _recorder,
     _configBody,
   ];
@@ -97,9 +96,14 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
         _wifiUpdated = true;
       });
     }
+
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(super.widget.name),
+        toolbarHeight: isLandscape ? 44 : kToolbarHeight,
         actions: [
           ...switch (ref.read(homeProvider)) {
             HomePage.control => [],
@@ -122,62 +126,40 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
           child: screens[ref.watch(homeProvider).index].call(),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: ref.watch(homeProvider).index,
-        onDestinationSelected: (index) {
-          ref.read(homeProvider.notifier).page = HomePage.values[index];
-          if (ref.read(homeProvider) == HomePage.config) {
-            _wiFiState = null;
-          }
-        },
-        destinations: const <Widget>[
-          NavigationDestination(
-            icon: Icon(Icons.home),
-            selectedIcon: Icon(Icons.home_outlined),
-            label: "Home",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.mic),
-            selectedIcon: Icon(Icons.mic_outlined),
-            label: "Voice",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings),
-            selectedIcon: Icon(Icons.settings_outlined),
-            label: "Settings",
-          ),
-        ],
-      ),
+      bottomNavigationBar: isLandscape
+          ? null
+          : NavigationBar(
+              selectedIndex: ref.watch(homeProvider).index,
+              onDestinationSelected: (index) {
+                ref.read(homeProvider.notifier).page = HomePage.values[index];
+                if (ref.read(homeProvider) == HomePage.config) {
+                  _wiFiState = null;
+                }
+              },
+              destinations: const <Widget>[
+                NavigationDestination(
+                  icon: Icon(Icons.home),
+                  selectedIcon: Icon(Icons.home_outlined),
+                  label: "Home",
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.mic),
+                  selectedIcon: Icon(Icons.mic_outlined),
+                  label: "Voice",
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.settings),
+                  selectedIcon: Icon(Icons.settings_outlined),
+                  label: "Settings",
+                ),
+              ],
+            ),
       // floatingActionButton: floatingActionButton,
     );
   }
 
   Widget _dashboardBody() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        Expanded(
-          child: ListView.builder(
-            itemCount: reads.length,
-            itemBuilder: (ctx, index) => reads[index].view(),
-          ),
-        ),
-        SizedBox(height: 15),
-        ElevatedButton(
-          onPressed: () {
-            // debugPrint("It's me dad!");
-            if (!mqttNotifier.isConnected()) {
-              ref.read(homeProvider.notifier).goToConfig();
-              ScaffoldMessenger.maybeOf(
-                context,
-              )?.showSnackBar(SnackBar(content: Text("Not connected bro")));
-            }
-            mqttNotifier.publish(ledTopic, "Hello from the dashboard");
-          },
-          child: Text("Press me!"),
-        ),
-      ],
-    );
+    return CanTestPage();
   }
 
   Widget _recorder() {
@@ -185,12 +167,16 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   }
 
   Widget _configBody() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisSize: MainAxisSize.max,
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      spacing: 15,
-      children: [WifiConfigPage(), ResetButton()],
+    return ListView(
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          spacing: 15,
+          children: [WifiConfigPage(), ResetButton()],
+        ),
+      ],
     );
   }
 }
