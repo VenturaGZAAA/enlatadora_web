@@ -200,8 +200,9 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
     if (!_isProcessing) {
       return GestureDetector(
         onLongPressStart: (details) => _startRecording(),
-        onLongPressCancel: () => _stop(),
-        onLongPressEnd: (details) => _stopAndTranscribe(),
+        onLongPressCancel: () => _stopAndTranscribe(),
+        // onLongPressEnd: (details) => _stopAndTranscribe(),
+        // onTap:() => _stopAndTranscribe(),
         child: ElevatedButton.icon(
           onPressed: () {},
           label: Text(buttonText),

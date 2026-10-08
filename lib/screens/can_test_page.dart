@@ -1,12 +1,8 @@
 import 'dart:convert';
 import 'dart:developer';
 
-import 'package:enlatadora_web/models/wifi_data.dart';
-import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
-import 'package:enlatadora_web/providers/recording_provider.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:mqtt_client/mqtt_client.dart';
 
 class CanTestPage extends MqttThingScreen {
   const CanTestPage({super.key}) : super(rootTopico: "");

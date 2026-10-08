@@ -60,9 +60,6 @@ class _VoiceRecorderScreenState
       mainAxisSize: MainAxisSize.max,
       spacing: 15.0,
       children: [
-        if (ref.watch(recordingProvider))
-          Text("We are listeningggg"),
-
         Expanded(
           child: Center(
             child: Container(
@@ -102,7 +99,7 @@ class _VoiceRecorderScreenState
 
         GroqVoiceRecorder(
           groqApiKey: AppConfig.groqKey,
-          keywords: ["stop", "paro", "reset", "start", "arranque"],
+          keywords: ["stop", "paro", "reset","reinicia", "start", "arranque"],
           onTranscriptionReceived: (transcription) {
             setState(() {
               _transcription = transcription;
