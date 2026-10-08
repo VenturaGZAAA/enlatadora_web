@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
@@ -20,14 +21,54 @@ class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
   static const numOutputs = 19;
   static const numInputs = 8;
 
+  final List<bool> outputs = List.filled(numOutputs, false);
+  final List<bool> inputs = List.filled(numInputs, false);
+  String _stage = "Esperando...";
+
   @override
   void subscribeToTopics() {
-    // TODO: implement subscribeToTopics
+    mqttNotifier.subscribe("machine/stage", (payload) {
+      setState(() => _stage = payload);
+    });
+
+    mqttNotifier.subscribe("machine/IO/outputs/read", (payload) {
+      final state = jsonDecode(payload) as Map<String, dynamic>;
+      if (state.length != numOutputs) {
+        log("Outputs length does not match");
+      }
+
+      for (int x = 0; x < numOutputs; x++) {
+        final value = state["Q$x"];
+        if (value is bool) {
+          setState(() => outputs[x] = value);
+        } else {
+          log("Missing or invalid value for Q$x");
+        }
+      }
+    });
+
+    mqttNotifier.subscribe("machine/IO/inputs/read", (payload) {
+      final state = jsonDecode(payload) as Map<String, dynamic>;
+      if (state.length != numInputs) {
+        log("Inputs length does not match");
+      }
+
+      for (int x = 0; x < numInputs; x++) {
+        final value = state["I$x"];
+        if (value is bool) {
+          setState(() => inputs[x] = value);
+        } else {
+          log("Missing or invalid value for I$x");
+        }
+      }
+    });
   }
 
   @override
   void unsubscribeToTopics() {
-    // TODO: implement unsubscribeToTopics
+    mqttNotifier.unsubscribe("machine/stage");
+    mqttNotifier.unsubscribe("machine/IO/outputs/read");
+    mqttNotifier.unsubscribe("machine/IO/inputs/read");
   }
 
   @override
@@ -37,10 +78,10 @@ class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(flex: 3, child: _outputsView()),
-        const SizedBox(height: 20),
-        const Text("Etapa: 0", textAlign: TextAlign.center),
+        const SizedBox(height: 15),
+        Text(_stage, textAlign: TextAlign.center),
         const Divider(color: Colors.grey),
-        const SizedBox(height: 20),
+        const SizedBox(height: 15),
         Expanded(flex: 1, child: _inputsView()),
       ],
     );
@@ -60,7 +101,12 @@ class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(child: Icon(Icons.lightbulb)),
+            Expanded(
+              child: Icon(
+                Icons.lightbulb,
+                color: outputs[index] ? Colors.yellow : null,
+              ),
+            ),
             Text("$index"),
           ],
         ),
@@ -82,7 +128,21 @@ class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(child: Icon(Icons.electric_bolt)),
+            Expanded(
+              child: IconButton(
+                onPressed: () {
+                  Map<String, bool> input = {"I$index": !inputs[index]};
+                  mqttNotifier.publish(
+                    "machine/IO/inputs/write",
+                    jsonEncode(input),
+                  );
+                },
+                icon: Icon(
+                  Icons.electric_bolt,
+                  color: inputs[index] ? Colors.yellow : null,
+                ),
+              ),
+            ),
             Text("$index"),
           ],
         ),
