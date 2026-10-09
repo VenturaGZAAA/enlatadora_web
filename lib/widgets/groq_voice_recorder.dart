@@ -1,14 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:enlatadora_web/models/app_config.dart';
 import 'package:enlatadora_web/providers/recording_provider.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:http/http.dart' as http;
 
@@ -51,6 +49,14 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
   String _lastTranscription = '';
 
   @override
+  void initState() {
+    super.initState();
+    if (AppConfig.espBuild) {
+      throw "Hey I'm not the one you are looking for";
+    }
+  }
+
+  @override
   void dispose() {
     _chunkTimer?.cancel();
     _audioStreamSubscription?.cancel();
@@ -80,10 +86,14 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
       final stream = await _recorder.startStream(
         const RecordConfig(
           encoder: AudioEncoder.pcm16bits,
-          sampleRate: 16000,   // Force 16 kHz — Groq's required rate
-          numChannels: 1,      // Force mono
-          autoGain: true,      // Helps normalize quiet speech
-          echoCancel: true,    // Reduces echo feedback
+          sampleRate: 16000,
+          // Force 16 kHz — Groq's required rate
+          numChannels: 1,
+          // Force mono
+          autoGain: true,
+          // Helps normalize quiet speech
+          echoCancel: true,
+          // Reduces echo feedback
           noiseSuppress: true, // Reduces background noise
         ),
       );
@@ -92,7 +102,7 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
       _lastTranscription = '';
 
       _audioStreamSubscription = stream.listen(
-            (chunk) {
+        (chunk) {
           _pcmBuffer.add(chunk);
         },
         onError: (error) {
@@ -153,7 +163,10 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
 
     setState(() => _isProcessing = true);
     try {
-      final transcription = await _sendToGroq(chunk, isOverlapChunk: _lastTranscription.isNotEmpty);
+      final transcription = await _sendToGroq(
+        chunk,
+        isOverlapChunk: _lastTranscription.isNotEmpty,
+      );
 
       // Deduplicate boundary words against the previous chunk's transcription.
       final deduped = _deduplicate(transcription);
@@ -182,7 +195,11 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
 
     // Find the longest suffix of lastWords that is a prefix of newWords.
     int matchLength = 0;
-    for (int len = 1; len <= lastWords.length && len <= newWords.length; len++) {
+    for (
+      int len = 1;
+      len <= lastWords.length && len <= newWords.length;
+      len++
+    ) {
       final suffix = lastWords.sublist(lastWords.length - len).join(' ');
       final prefix = newWords.sublist(0, len).join(' ');
       if (suffix.toLowerCase() == prefix.toLowerCase()) {
@@ -218,7 +235,12 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
   }
 
   /// Wraps raw PCM bytes in a WAV container so Groq accepts the upload.
-  Uint8List _wrapPcmInWav(Uint8List pcmData, {int sampleRate = 16000, int channels = 1, int bitsPerSample = 16}) {
+  Uint8List _wrapPcmInWav(
+    Uint8List pcmData, {
+    int sampleRate = 16000,
+    int channels = 1,
+    int bitsPerSample = 16,
+  }) {
     final byteRate = sampleRate * channels * bitsPerSample ~/ 8;
     final blockAlign = channels * bitsPerSample ~/ 8;
     final dataSize = pcmData.length;
@@ -261,21 +283,22 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
     return wav;
   }
 
-  Future<String> _sendToGroq(Uint8List pcmBytes, {bool isOverlapChunk = false}) async {
+  Future<String> _sendToGroq(
+    Uint8List pcmBytes, {
+    bool isOverlapChunk = false,
+  }) async {
     final wavBytes = _wrapPcmInWav(pcmBytes);
 
-    final url = Uri.parse('https://api.groq.com/openai/v1/audio/transcriptions');
+    final url = Uri.parse(
+      'https://api.groq.com/openai/v1/audio/transcriptions',
+    );
     final request = http.MultipartRequest('POST', url)
       ..headers['Authorization'] = 'Bearer ${widget.groqApiKey}'
       ..fields['model'] = 'whisper-large-v3-turbo'
       ..fields['language'] = 'en'
       ..fields['response_format'] = 'json'
       ..files.add(
-        http.MultipartFile.fromBytes(
-          'file',
-          wavBytes,
-          filename: 'chunk.wav',
-        ),
+        http.MultipartFile.fromBytes('file', wavBytes, filename: 'chunk.wav'),
       );
 
     final response = await request.send();
@@ -309,7 +332,9 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
     }
 
     final buttonText = isRecording ? 'Press to Stop' : 'Hold to Record';
-    final buttonIcon = isRecording ? const Icon(Icons.stop) : const Icon(Icons.mic);
+    final buttonIcon = isRecording
+        ? const Icon(Icons.stop)
+        : const Icon(Icons.mic);
 
     return GestureDetector(
       onLongPressStart: (_) => _startRecording(),

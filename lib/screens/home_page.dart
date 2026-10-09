@@ -7,7 +7,6 @@ import 'package:enlatadora_web/screens/can_test_page.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:enlatadora_web/screens/voice_recorder_screen.dart';
 
-import 'package:enlatadora_web/widgets/helpers.dart';
 import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
 import 'package:enlatadora_web/widgets/reset_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
@@ -26,7 +25,6 @@ class HomeScreen extends MqttThingScreen {
 }
 
 class _HomePageState extends MqttThingScreenState<HomeScreen> {
-  late final String ledTopic = "${widget.rootTopico}led";
   late final String readTopic = "${widget.rootTopico}read";
 
   bool _wifiUpdated = false;

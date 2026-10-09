@@ -1,9 +1,11 @@
 import 'package:enlatadora_web/providers/recording_provider.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:flutter/material.dart';
+
 // import 'package:mqtt_client/mqtt_client.dart';
 // import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/widgets/groq_voice_recorder.dart';
+
 // import 'package:enlatadora_web/widgets/helpers.dart';
 // import 'dart:convert';
 import 'dart:developer';
@@ -21,7 +23,7 @@ class VoiceRecorderScreen extends MqttThingScreen {
 class _VoiceRecorderScreenState
     extends MqttThingScreenState<VoiceRecorderScreen> {
   String? _match;
-  String? _transcription;
+  final List<_MockData> wordsFound = [];
 
   @override
   void subscribeToTopics() {
@@ -52,7 +54,6 @@ class _VoiceRecorderScreenState
         ),
       );
     }
-    final words = _transcription?.split(' ');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -74,9 +75,9 @@ class _VoiceRecorderScreenState
             ),
           ),
         ),
-        if (words != null)
+        if (wordsFound.isNotEmpty)
           SizedBox(
-            height: 120,
+            height: 150,
             child: Container(
               decoration: BoxDecoration(
                 // color: const Color.fromARGB(65, 158, 158, 158),
@@ -91,18 +92,22 @@ class _VoiceRecorderScreenState
               ),
 
               child: ListView.builder(
-                itemCount: words.length,
-                itemBuilder: (ctx, index) => Center(child: Text(words[index])),
+                itemCount: wordsFound.length,
+                itemBuilder: (ctx, index) =>
+                    Center(child: wordsFound[index].view()),
               ),
             ),
           ),
 
         GroqVoiceRecorder(
           groqApiKey: AppConfig.groqKey,
-          keywords: ["stop", "paro", "reset","reinicia", "start", "arranque"],
+          keywords: ["stop", "paro", "reset", "reinicia", "start", "arranque"],
           onTranscriptionReceived: (transcription) {
             setState(() {
-              _transcription = transcription;
+              wordsFound.add(_MockData(DateTime.now(), transcription));
+              if (wordsFound.length>10) {
+                wordsFound.removeAt(0);
+              }
             });
           },
           onKeywordDetected: (result) {
@@ -113,6 +118,20 @@ class _VoiceRecorderScreenState
           },
         ),
       ],
+    );
+  }
+}
+
+class _MockData {
+  const _MockData(this.time, this.message);
+
+  final DateTime time;
+  final String message;
+
+  Widget view() {
+    return ListTile(
+      title: Text(message),
+      subtitle: Text("${time.hour}-${time.minute}-${time.second}"),
     );
   }
 }
