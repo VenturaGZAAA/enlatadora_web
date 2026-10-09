@@ -41,8 +41,8 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
   Timer? _chunkTimer;
 
   // Chunk timing
-  static const _chunkInterval = Duration(seconds: 5);
-  static const _overlapDuration = Duration(milliseconds: 500);
+  static const _chunkInterval = Duration(seconds: 6);
+  static const _overlapDuration = Duration(milliseconds: 1000);
 
   // Track last chunk's trailing bytes for overlap
   Uint8List _overlapBytes = Uint8List(0);
@@ -78,9 +78,15 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
       // PCM 16-bit is the recommended encoder for streaming because it provides
       // raw audio data that can be split and re-encoded easily.
       final stream = await _recorder.startStream(
-        const RecordConfig(encoder: AudioEncoder.pcm16bits),
+        const RecordConfig(
+          encoder: AudioEncoder.pcm16bits,
+          sampleRate: 16000,   // Force 16 kHz — Groq's required rate
+          numChannels: 1,      // Force mono
+          autoGain: true,      // Helps normalize quiet speech
+          echoCancel: true,    // Reduces echo feedback
+          noiseSuppress: true, // Reduces background noise
+        ),
       );
-
       _pcmBuffer.clear();
       _overlapBytes = Uint8List(0);
       _lastTranscription = '';
