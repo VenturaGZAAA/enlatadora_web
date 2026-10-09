@@ -181,8 +181,10 @@ class MqttNotifier extends AsyncNotifier<MqttState>
   }
 
   void unsubscribe(String topic) {
-    state.value?.model.client.unsubscribe(topic);
-    subscriptions.remove(topic);
+    if (state.value != null) {
+      state.value?.model.client.unsubscribe(topic);
+      subscriptions.remove(topic);
+    }
   }
 
   Map<String, MqttSubscriptionData> subscriptions = {};
