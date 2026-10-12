@@ -10,6 +10,7 @@ import 'package:enlatadora_web/widgets/groq_voice_recorder.dart';
 // import 'dart:convert';
 import 'dart:developer';
 import 'package:enlatadora_web/models/app_config.dart';
+import 'package:enlatadora_web/widgets/voice_keyword_button.dart';
 
 class VoiceRecorderScreen extends MqttThingScreen {
   const VoiceRecorderScreen({super.key}) : super(rootTopico: "");
@@ -25,23 +26,47 @@ class _VoiceRecorderScreenState
   String? _match;
   final List<_MockData> wordsFound = [];
 
+  bool _espListening = false;
+
   @override
   void subscribeToTopics() {
-    // TODO: implement subscribeToTopics
+    if (AppConfig.espBuild) {
+      mqttNotifier.subscribe("voice/keyword/listening", (payload) {
+        try {
+          _espListening = bool.parse(payload);
+          if (_espListening) {
+            ref.read(recordingProvider.notifier).recordingStart();
+          }
+        } finally {}
+      });
+    }
   }
 
   @override
   void unsubscribeToTopics() {
-    // TODO: implement unsubscribeToTopics
+    if (AppConfig.espBuild) {
+      mqttNotifier.unsubscribe("voice/keyword/listening");
+    }
   }
 
   @override
   Widget buildBody(BuildContext context) {
     if (AppConfig.espBuild) {
+      final buttonText = _espListening ? 'Press to Stop' : 'Hold to Record';
+      final buttonIcon = _espListening
+          ? const Icon(Icons.stop)
+          : const Icon(Icons.mic);
+
       return Center(
-        child: const Text(
-          "W.I.P",
-          style: TextStyle(color: Colors.red, fontSize: 32),
+        child: VoiceKeywordButton(
+          buttonText: buttonText,
+          buttonIcon: buttonIcon,
+          onLongPressStart: () {
+            mqttNotifier.publish("voice/keyword/command", "voiceOn");
+          },
+          onLongPressCancel: () {
+            mqttNotifier.publish("voice/keyword/command", "voiceOff");
+          },
         ),
       );
     }
@@ -93,6 +118,7 @@ class _VoiceRecorderScreenState
 
               child: ListView.builder(
                 itemCount: wordsFound.length,
+                reverse: true,
                 itemBuilder: (ctx, index) =>
                     Center(child: wordsFound[index].view()),
               ),
@@ -105,7 +131,7 @@ class _VoiceRecorderScreenState
           onTranscriptionReceived: (transcription) {
             setState(() {
               wordsFound.add(_MockData(DateTime.now(), transcription));
-              if (wordsFound.length>10) {
+              if (wordsFound.length > 10) {
                 wordsFound.removeAt(0);
               }
             });
@@ -115,6 +141,9 @@ class _VoiceRecorderScreenState
             setState(() {
               _match = result;
             });
+            if (result != null) {
+              mqttNotifier.publish("machine/command",result);
+            }
           },
         ),
       ],

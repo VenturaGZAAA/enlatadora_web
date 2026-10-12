@@ -28,7 +28,7 @@ class _CanTestPageState extends MqttThingScreenState<VisualizeIOPage> {
       final state = jsonDecode(payload) as Map<String, dynamic>;
       final stage = state["stage"];
       if (stage is String) {
-        setState(() => _stage = payload);
+        setState(() => _stage = stage);
       }
     });
 

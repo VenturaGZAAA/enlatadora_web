@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-rm -rf ./build/web
+#rm -rf ./build/web
 
 flutter build web --release --dart-define-from-file=environment/config_esp.json
 
