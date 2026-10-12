@@ -4,8 +4,8 @@ import 'dart:developer';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:flutter/material.dart';
 
-class CanTestPage extends MqttThingScreen {
-  const CanTestPage({super.key}) : super(rootTopico: "");
+class VisualizeIOPage extends MqttThingScreen {
+  const VisualizeIOPage({super.key}) : super(rootTopico: "");
 
   @override
   MqttThingScreenState<MqttThingScreen> createState() {
@@ -13,7 +13,7 @@ class CanTestPage extends MqttThingScreen {
   }
 }
 
-class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
+class _CanTestPageState extends MqttThingScreenState<VisualizeIOPage> {
   static const numOutputs = 19;
   static const numInputs = 8;
   static const _maxItemWith = 100.0;
@@ -24,8 +24,12 @@ class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
 
   @override
   void subscribeToTopics() {
-    mqttNotifier.subscribe("machine/stage", (payload) {
-      setState(() => _stage = payload);
+    mqttNotifier.subscribe("machine/state/read", (payload) {
+      final state = jsonDecode(payload) as Map<String, dynamic>;
+      final stage = state["stage"];
+      if (stage is String) {
+        setState(() => _stage = payload);
+      }
     });
 
     mqttNotifier.subscribe("machine/IO/outputs/read", (payload) {
@@ -63,7 +67,7 @@ class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
 
   @override
   void unsubscribeToTopics() {
-    mqttNotifier.unsubscribe("machine/stage");
+    mqttNotifier.unsubscribe("machine/state/read");
     mqttNotifier.unsubscribe("machine/IO/outputs/read");
     mqttNotifier.unsubscribe("machine/IO/inputs/read");
   }
@@ -99,7 +103,19 @@ class _CanTestPageState extends MqttThingScreenState<CanTestPage> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.lightbulb, color: outputs[index] ? Colors.yellow : null),
+            IconButton(
+              onPressed: () {
+                Map<String, bool> input = {"Q$index": !outputs[index]};
+                mqttNotifier.publish(
+                  "machine/IO/outputs/write",
+                  jsonEncode(input),
+                );
+              },
+              icon: Icon(
+                Icons.lightbulb,
+                color: outputs[index] ? Colors.yellow : null,
+              ),
+            ),
             Text("$index"),
           ],
         ),

@@ -45,7 +45,7 @@ class WifiConfigPageState extends ConsumerState<WifiConfigPage> {
   void _publishWiFiData(WiFiData data, String message) {
     const encoder = JsonEncoder.withIndent('  ');
     mqttNotifier.publish(
-      "config/wifi/data",
+      "config/wifi/set",
       encoder.convert(data),
       qos: MqttQos.exactlyOnce,
     );

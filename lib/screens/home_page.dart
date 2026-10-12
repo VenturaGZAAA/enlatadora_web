@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/providers/recording_provider.dart';
-import 'package:enlatadora_web/screens/can_test_page.dart';
+import 'package:enlatadora_web/screens/visualize_io_page.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:enlatadora_web/screens/voice_recorder_screen.dart';
 
@@ -157,7 +157,7 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   }
 
   Widget _dashboardBody() {
-    return CanTestPage();
+    return VisualizeIOPage();
   }
 
   Widget _recorder() {
