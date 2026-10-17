@@ -1,6 +1,6 @@
 #!/bin/zsh
 
-#rm -rf ./build/web
+rm -rf ./build/web
 
 flutter build web --release --dart-define-from-file=environment/config_esp.json
 
@@ -35,6 +35,6 @@ done
 cd ..
 
 # --- Sync to SD card (adjust path if needed) ---
-rsync -r ./web /run/media/urzu-7/G-CODE
+rsync -r ./web /run/media/urzu-7/G-CODE/CanningMachine
 
 echo "✅ Deployment complete."

@@ -11,6 +11,7 @@ import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
 import 'package:enlatadora_web/widgets/reset_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
 import 'package:flutter/material.dart';
+import 'package:enlatadora_web/models/mock_data.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:enlatadora_web/providers/home_state_provider.dart';
 
@@ -25,10 +26,25 @@ class HomeScreen extends MqttThingScreen {
 }
 
 class _HomePageState extends MqttThingScreenState<HomeScreen> {
-  late final String readTopic = "${widget.rootTopico}read";
-
+  static const String wifiStateTopic = "config/wifi/state";
   bool _wifiUpdated = false;
   WiFiState? _wiFiState;
+
+  static const String voiceTranscriptionsTopic = "voice/keyword/transcription";
+  final List<MockData> _transcriptions = [];
+  static const int maxTranscriptions = 20;
+
+  static const String voiceMatchTopic = "voice/keyword/match";
+
+  void addTranscription(String transcription) {
+    setState(() {
+      _transcriptions.add(MockData(DateTime.now(), transcription));
+    });
+
+    while (_transcriptions.length > maxTranscriptions) {
+      _transcriptions.removeAt(0);
+    }
+  }
 
   late List<Widget Function()> screens = [
     _dashboardBody,
@@ -36,29 +52,19 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
     _configBody,
   ];
 
-  // int _currentScreenIndex = 0;
-
-  final List<MockData> reads = List.empty(growable: true);
-  static const int MAX_ITEMS = 50;
-
   void mate() async {
     await ref.read(mqttProvider.future);
     await mqttNotifier.connect();
-    mqttNotifier.subscribe(readTopic, (content) {
-      setState(() {
-        reads.add(MockData(DateTime.now(), content));
-        if (reads.length > MAX_ITEMS) {
-          reads.removeAt(0);
-        }
-      });
-    }, qos: MqttQos.atMostOnce);
-    mqttNotifier.subscribe("config/wifi/state", (content) {
+
+    mqttNotifier.subscribe(wifiStateTopic, (content) {
       try {
         setState(() {
           _wiFiState = WiFiState.fromJson(jsonDecode(content));
         });
       } finally {}
     }, qos: MqttQos.atLeastOnce);
+
+    mqttNotifier.subscribe(voiceTranscriptionsTopic, addTranscription);
   }
 
   @override
@@ -73,7 +79,7 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
 
   @override
   void unsubscribeToTopics() {
-    mqttNotifier.unsubscribe(readTopic);
+    mqttNotifier.unsubscribe(wifiStateTopic);
   }
 
   @override
@@ -161,7 +167,10 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   }
 
   Widget _recorder() {
-    return VoiceRecorderScreen();
+    return VoiceRecorderScreen(
+      trans: _transcriptions,
+      addTrans: addTranscription,
+    );
   }
 
   Widget _configBody() {
@@ -175,20 +184,6 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
           children: [WifiConfigPage(), ResetButton()],
         ),
       ],
-    );
-  }
-}
-
-class MockData {
-  const MockData(this.time, this.message);
-
-  final DateTime time;
-  final String message;
-
-  Widget view() {
-    return ListTile(
-      title: Text(message),
-      subtitle: Text("${time.hour}-${time.minute}-${time.second}"),
     );
   }
 }

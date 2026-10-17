@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:record/record.dart';
 import 'package:http/http.dart' as http;
-import 'package:enlatadora_web/widgets/voice_keyword_button.dart';
+import 'package:enlatadora_web/widgets/voice_recorder_button.dart';
 
 class GroqVoiceRecorder extends ConsumerStatefulWidget {
   final String groqApiKey;
@@ -338,10 +338,11 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
         : const Icon(Icons.mic);
 
     return VoiceKeywordButton(
+      isListening: _isListening,
       buttonText: buttonText,
       buttonIcon: buttonIcon,
-      onLongPressStart: () => _startRecording(),
-      onLongPressCancel: () => _stop(),
+      toStart: () => _startRecording(),
+      toStop: () => _stop(),
     );
   }
 }

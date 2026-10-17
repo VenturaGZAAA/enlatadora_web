@@ -8,12 +8,20 @@ import 'package:enlatadora_web/widgets/groq_voice_recorder.dart';
 
 // import 'package:enlatadora_web/widgets/helpers.dart';
 // import 'dart:convert';
+import 'package:enlatadora_web/models/mock_data.dart';
 import 'dart:developer';
 import 'package:enlatadora_web/models/app_config.dart';
-import 'package:enlatadora_web/widgets/voice_keyword_button.dart';
+import 'package:enlatadora_web/widgets/voice_recorder_button.dart';
 
 class VoiceRecorderScreen extends MqttThingScreen {
-  const VoiceRecorderScreen({super.key}) : super(rootTopico: "");
+  const VoiceRecorderScreen({
+    required this.trans,
+    required this.addTrans,
+    super.key,
+  }) : super(rootTopico: "");
+
+  final List<MockData> trans;
+  final void Function(String) addTrans;
 
   @override
   MqttThingScreenState<MqttThingScreen> createState() {
@@ -24,14 +32,14 @@ class VoiceRecorderScreen extends MqttThingScreen {
 class _VoiceRecorderScreenState
     extends MqttThingScreenState<VoiceRecorderScreen> {
   String? _match;
-  final List<_MockData> wordsFound = [];
 
+  static const String espListeningTopic = "voice/keyword/listening";
   bool _espListening = false;
 
   @override
   void subscribeToTopics() {
     if (AppConfig.espBuild) {
-      mqttNotifier.subscribe("voice/keyword/listening", (payload) {
+      mqttNotifier.subscribe(espListeningTopic, (payload) {
         try {
           _espListening = bool.parse(payload);
           if (_espListening) {
@@ -45,38 +53,39 @@ class _VoiceRecorderScreenState
   @override
   void unsubscribeToTopics() {
     if (AppConfig.espBuild) {
-      mqttNotifier.unsubscribe("voice/keyword/listening");
+      mqttNotifier.unsubscribe(espListeningTopic);
     }
   }
 
   @override
   Widget buildBody(BuildContext context) {
+    if (AppConfig.groqKey.length < 5 && !AppConfig.espBuild) {
+      return Center(
+        child: Text(
+          "GROQ_KEY not found in config file",
+          style: TextStyle(color: Colors.red),
+        ),
+      );
+    }
+
+    Widget? espButton = null;
+
     if (AppConfig.espBuild) {
       final buttonText = _espListening ? 'Press to Stop' : 'Hold to Record';
       final buttonIcon = _espListening
           ? const Icon(Icons.stop)
           : const Icon(Icons.mic);
 
-      return Center(
-        child: VoiceKeywordButton(
-          buttonText: buttonText,
-          buttonIcon: buttonIcon,
-          onLongPressStart: () {
-            mqttNotifier.publish("voice/keyword/command", "voiceOn");
-          },
-          onLongPressCancel: () {
-            mqttNotifier.publish("voice/keyword/command", "voiceOff");
-          },
-        ),
-      );
-    }
-
-    if (AppConfig.groqKey.length < 5) {
-      return Center(
-        child: Text(
-          "GROQ_KEY not found in config file",
-          style: TextStyle(color: Colors.red),
-        ),
+      espButton = VoiceKeywordButton(
+        isListening: _espListening,
+        buttonText: buttonText,
+        buttonIcon: buttonIcon,
+        toStart: () {
+          mqttNotifier.publish("voice/keyword/command", "voiceOn");
+        },
+        toStop: () {
+          mqttNotifier.publish("voice/keyword/command", "voiceOff");
+        },
       );
     }
 
@@ -100,12 +109,11 @@ class _VoiceRecorderScreenState
             ),
           ),
         ),
-        if (wordsFound.isNotEmpty)
+        if (widget.trans.isNotEmpty)
           SizedBox(
             height: 150,
             child: Container(
               decoration: BoxDecoration(
-                // color: const Color.fromARGB(65, 158, 158, 158),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
@@ -117,50 +125,39 @@ class _VoiceRecorderScreenState
               ),
 
               child: ListView.builder(
-                itemCount: wordsFound.length,
-                reverse: true,
+                itemCount: widget.trans.length,
+                reverse: false,
                 itemBuilder: (ctx, index) =>
-                    Center(child: wordsFound[index].view()),
+                    Center(child: widget.trans[index].view()),
               ),
             ),
           ),
 
-        GroqVoiceRecorder(
-          groqApiKey: AppConfig.groqKey,
-          keywords: ["stop", "paro", "reset", "reinicia", "start", "arranque"],
-          onTranscriptionReceived: (transcription) {
-            setState(() {
-              wordsFound.add(_MockData(DateTime.now(), transcription));
-              if (wordsFound.length > 10) {
-                wordsFound.removeAt(0);
+        ?espButton,
+
+        if (espButton == null)
+          GroqVoiceRecorder(
+            groqApiKey: AppConfig.groqKey,
+            keywords: [
+              "stop",
+              "paro",
+              "reset",
+              "reinicia",
+              "start",
+              "arranque",
+            ],
+            onTranscriptionReceived: widget.addTrans,
+            onKeywordDetected: (result) {
+              log("Voice result: $result");
+              setState(() {
+                _match = result;
+              });
+              if (result != null) {
+                mqttNotifier.publish("machine/command", result);
               }
-            });
-          },
-          onKeywordDetected: (result) {
-            log("Voice result: $result");
-            setState(() {
-              _match = result;
-            });
-            if (result != null) {
-              mqttNotifier.publish("machine/command",result);
-            }
-          },
-        ),
+            },
+          ),
       ],
-    );
-  }
-}
-
-class _MockData {
-  const _MockData(this.time, this.message);
-
-  final DateTime time;
-  final String message;
-
-  Widget view() {
-    return ListTile(
-      title: Text(message),
-      subtitle: Text("${time.hour}-${time.minute}-${time.second}"),
     );
   }
 }
