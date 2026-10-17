@@ -41,7 +41,10 @@ class _VoiceRecorderScreenState
     if (AppConfig.espBuild) {
       mqttNotifier.subscribe(espListeningTopic, (payload) {
         try {
-          _espListening = bool.parse(payload);
+          bool value = bool.parse(payload);
+          setState(() {
+            _espListening = value;
+          });
           if (_espListening) {
             ref.read(recordingProvider.notifier).recordingStart();
           }
@@ -68,7 +71,7 @@ class _VoiceRecorderScreenState
       );
     }
 
-    Widget? espButton = null;
+    Widget? espButton;
 
     if (AppConfig.espBuild) {
       final buttonText = _espListening ? 'Press to Stop' : 'Hold to Record';
@@ -140,11 +143,17 @@ class _VoiceRecorderScreenState
             groqApiKey: AppConfig.groqKey,
             keywords: [
               "stop",
-              "paro",
-              "reset",
-              "reinicia",
+              "disable",
+              "detener",
+              "desactivar",
               "start",
-              "arranque",
+              "enable",
+              "inicia",
+              "arranca",
+              "pause",
+              "emergency",
+              "emergencia",
+              "pausa",
             ],
             onTranscriptionReceived: widget.addTrans,
             onKeywordDetected: (result) {
