@@ -101,13 +101,9 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
       });
     }
 
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(super.widget.name),
-        toolbarHeight: isLandscape ? 44 : kToolbarHeight,
         actions: [
           ...switch (ref.read(homeProvider)) {
             HomePage.control => [],
@@ -130,34 +126,32 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
           child: screens[ref.watch(homeProvider).index].call(),
         ),
       ),
-      bottomNavigationBar: isLandscape
-          ? null
-          : NavigationBar(
-              selectedIndex: ref.watch(homeProvider).index,
-              onDestinationSelected: (index) {
-                ref.read(homeProvider.notifier).page = HomePage.values[index];
-                if (ref.read(homeProvider) == HomePage.config) {
-                  _wiFiState = null;
-                }
-              },
-              destinations: const <Widget>[
-                NavigationDestination(
-                  icon: Icon(Icons.home),
-                  selectedIcon: Icon(Icons.home_outlined),
-                  label: "Home",
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.mic),
-                  selectedIcon: Icon(Icons.mic_outlined),
-                  label: "Voice",
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.settings),
-                  selectedIcon: Icon(Icons.settings_outlined),
-                  label: "Settings",
-                ),
-              ],
-            ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: ref.watch(homeProvider).index,
+        onDestinationSelected: (index) {
+          ref.read(homeProvider.notifier).page = HomePage.values[index];
+          if (ref.read(homeProvider) == HomePage.config) {
+            _wiFiState = null;
+          }
+        },
+        destinations: const <Widget>[
+          NavigationDestination(
+            icon: Icon(Icons.home),
+            selectedIcon: Icon(Icons.home_outlined),
+            label: "Home",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.mic),
+            selectedIcon: Icon(Icons.mic_outlined),
+            label: "Voice",
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings),
+            selectedIcon: Icon(Icons.settings_outlined),
+            label: "Settings",
+          ),
+        ],
+      ),
       // floatingActionButton: floatingActionButton,
     );
   }

@@ -62,6 +62,11 @@ class _VoiceRecorderScreenState
 
   @override
   Widget buildBody(BuildContext context) {
+
+    if (!AppConfig.espBuild){
+      mqttNotifier.publish("voice/keyword/command", "voiceOff");
+    }
+
     if (AppConfig.groqKey.length < 5 && !AppConfig.espBuild) {
       return Center(
         child: Text(
