@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
@@ -27,6 +28,18 @@ class HomeScreen extends MqttThingScreen {
 
 class _HomePageState extends MqttThingScreenState<HomeScreen> {
   static const String wifiStateTopic = "config/wifi/state";
+
+  static const numOutputs = 19;
+  static const numInputs = 8;
+  static const String machineStateTopic = "machine/state/read";
+  static const String outputsReadTopic = "machine/IO/outputs/read";
+  static const String inputsReadTopic = "machine/IO/inputs/read";
+
+  final List<bool> outputs = List.filled(numOutputs, false);
+  final List<bool> inputs = List.filled(numInputs, false);
+  String _stage = "Esperando...";
+  bool authorizedSystem = false;
+
   bool _wifiUpdated = false;
   WiFiState? _wiFiState;
 
@@ -67,22 +80,63 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
     mqttNotifier.subscribe(voiceTranscriptionsTopic, addTranscription);
   }
 
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   void subscribeToTopics() {
     mate();
+
+    mqttNotifier.subscribe(machineStateTopic, (payload) {
+      final state = jsonDecode(payload) as Map<String, dynamic>;
+      final stage = state["stage"];
+      if (stage is String) {
+        setState(() => _stage = stage);
+      }
+      final authorized = state["authorizedSystem"];
+      if (authorized is bool) {
+        authorizedSystem = authorized;
+      }
+    });
+
+    mqttNotifier.subscribe(outputsReadTopic, (payload) {
+      final state = jsonDecode(payload) as Map<String, dynamic>;
+      if (state.length != numOutputs) {
+        log("Outputs length does not match");
+      }
+
+      for (int x = 0; x < numOutputs; x++) {
+        final value = state["Q$x"];
+        if (value is bool) {
+          setState(() => outputs[x] = value);
+        } else {
+          log("Missing or invalid value for Q$x");
+        }
+      }
+    });
+
+    mqttNotifier.subscribe(inputsReadTopic, (payload) {
+      final state = jsonDecode(payload) as Map<String, dynamic>;
+      if (state.length != numInputs) {
+        log("Inputs length does not match");
+      }
+
+      for (int x = 0; x < numInputs; x++) {
+        final value = state["I$x"];
+        if (value is bool) {
+          setState(() => inputs[x] = value);
+        } else {
+          log("Missing or invalid value for I$x");
+        }
+      }
+    });
   }
 
   @override
   void unsubscribeToTopics() {
     mqttNotifier.unsubscribe(wifiStateTopic);
+    mqttNotifier.unsubscribe(machineStateTopic);
+    mqttNotifier.unsubscribe(outputsReadTopic);
+    mqttNotifier.unsubscribe(inputsReadTopic);
   }
-
-
 
   @override
   void dispose() {
@@ -159,7 +213,12 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   }
 
   Widget _dashboardBody() {
-    return VisualizeIOPage();
+    return VisualizeIOPage(
+      stage: _stage,
+      authorizedSystem: authorizedSystem,
+      outputs: outputs,
+      inputs: inputs,
+    );
   }
 
   Widget _recorder() {

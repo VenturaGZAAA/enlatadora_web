@@ -35,6 +35,6 @@ done
 cd ..
 
 # --- Sync to SD card (adjust path if needed) ---
-rsync -r ./web /run/media/urzu-7/G-CODE/CanningMachine
+rsync -rav ./web /run/media/urzu-7/G-CODE/CanningMachine
 
 echo "✅ Deployment complete."

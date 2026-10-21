@@ -1,11 +1,21 @@
 import 'dart:convert';
-import 'dart:developer';
 
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:flutter/material.dart';
 
 class VisualizeIOPage extends MqttThingScreen {
-  const VisualizeIOPage({super.key}) : super(rootTopico: "");
+  const VisualizeIOPage({
+    required this.stage,
+    required this.authorizedSystem,
+    required this.outputs,
+    required this.inputs,
+    super.key,
+  }) : super(rootTopico: "");
+
+  final List<bool> outputs;
+  final List<bool> inputs;
+  final String stage;
+  final bool authorizedSystem;
 
   @override
   MqttThingScreenState<MqttThingScreen> createState() {
@@ -14,63 +24,13 @@ class VisualizeIOPage extends MqttThingScreen {
 }
 
 class _CanTestPageState extends MqttThingScreenState<VisualizeIOPage> {
-  static const numOutputs = 19;
-  static const numInputs = 8;
   static const _maxItemWith = 100.0;
 
-  final List<bool> outputs = List.filled(numOutputs, false);
-  final List<bool> inputs = List.filled(numInputs, false);
-  String _stage = "Esperando...";
+  @override
+  void subscribeToTopics() {}
 
   @override
-  void subscribeToTopics() {
-    mqttNotifier.subscribe("machine/state/read", (payload) {
-      final state = jsonDecode(payload) as Map<String, dynamic>;
-      final stage = state["stage"];
-      if (stage is String) {
-        setState(() => _stage = stage);
-      }
-    });
-
-    mqttNotifier.subscribe("machine/IO/outputs/read", (payload) {
-      final state = jsonDecode(payload) as Map<String, dynamic>;
-      if (state.length != numOutputs) {
-        log("Outputs length does not match");
-      }
-
-      for (int x = 0; x < numOutputs; x++) {
-        final value = state["Q$x"];
-        if (value is bool) {
-          setState(() => outputs[x] = value);
-        } else {
-          log("Missing or invalid value for Q$x");
-        }
-      }
-    });
-
-    mqttNotifier.subscribe("machine/IO/inputs/read", (payload) {
-      final state = jsonDecode(payload) as Map<String, dynamic>;
-      if (state.length != numInputs) {
-        log("Inputs length does not match");
-      }
-
-      for (int x = 0; x < numInputs; x++) {
-        final value = state["I$x"];
-        if (value is bool) {
-          setState(() => inputs[x] = value);
-        } else {
-          log("Missing or invalid value for I$x");
-        }
-      }
-    });
-  }
-
-  @override
-  void unsubscribeToTopics() {
-    mqttNotifier.unsubscribe("machine/state/read");
-    mqttNotifier.unsubscribe("machine/IO/outputs/read");
-    mqttNotifier.unsubscribe("machine/IO/inputs/read");
-  }
+  void unsubscribeToTopics() {}
 
   @override
   Widget buildBody(BuildContext context) {
@@ -79,11 +39,19 @@ class _CanTestPageState extends MqttThingScreenState<VisualizeIOPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(flex: 3, child: _outputsView()),
-        const SizedBox(height: 15),
-        Text(_stage, textAlign: TextAlign.center),
+        const SizedBox(height: 5),
         const Divider(color: Colors.grey),
-        const SizedBox(height: 15),
+        const SizedBox(height: 5),
         Expanded(flex: 1, child: _inputsView()),
+        const Divider(color: Colors.grey),
+        const SizedBox(height: 5),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            Text(widget.stage, textAlign: TextAlign.center),
+            Checkbox(value: widget.authorizedSystem, onChanged: (_) {}),
+          ],
+        ),
       ],
     );
   }
@@ -96,7 +64,7 @@ class _CanTestPageState extends MqttThingScreenState<VisualizeIOPage> {
         mainAxisSpacing: 5,
         childAspectRatio: 1,
       ),
-      itemCount: numOutputs,
+      itemCount: widget.outputs.length,
       itemBuilder: (context, index) => Card.outlined(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Column(
@@ -105,7 +73,7 @@ class _CanTestPageState extends MqttThingScreenState<VisualizeIOPage> {
           children: [
             IconButton(
               onPressed: () {
-                Map<String, bool> input = {"Q$index": !outputs[index]};
+                Map<String, bool> input = {"Q$index": !widget.outputs[index]};
                 mqttNotifier.publish(
                   "machine/IO/outputs/write",
                   jsonEncode(input),
@@ -113,7 +81,7 @@ class _CanTestPageState extends MqttThingScreenState<VisualizeIOPage> {
               },
               icon: Icon(
                 Icons.lightbulb,
-                color: outputs[index] ? Colors.yellow : null,
+                color: widget.outputs[index] ? Colors.yellow : null,
               ),
             ),
             Text("$index"),
@@ -131,7 +99,7 @@ class _CanTestPageState extends MqttThingScreenState<VisualizeIOPage> {
         mainAxisSpacing: 5,
         childAspectRatio: 1,
       ),
-      itemCount: numInputs,
+      itemCount: widget.inputs.length,
       itemBuilder: (context, index) => Card.outlined(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Column(
@@ -139,16 +107,10 @@ class _CanTestPageState extends MqttThingScreenState<VisualizeIOPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             IconButton(
-              onPressed: () {
-                Map<String, bool> input = {"I$index": !inputs[index]};
-                mqttNotifier.publish(
-                  "machine/IO/inputs/write",
-                  jsonEncode(input),
-                );
-              },
+              onPressed: () {},
               icon: Icon(
                 Icons.electric_bolt,
-                color: inputs[index] ? Colors.yellow : null,
+                color: widget.inputs[index] ? Colors.yellow : null,
               ),
             ),
             Text("$index"),
