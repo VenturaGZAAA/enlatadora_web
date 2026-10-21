@@ -50,6 +50,8 @@ class _VoiceRecorderScreenState
           }
         } finally {}
       });
+    } else {
+      mqttNotifier.publish("voice/keyword/command", "voiceOff");
     }
   }
 
@@ -62,11 +64,6 @@ class _VoiceRecorderScreenState
 
   @override
   Widget buildBody(BuildContext context) {
-
-    if (!AppConfig.espBuild){
-      mqttNotifier.publish("voice/keyword/command", "voiceOff");
-    }
-
     if (AppConfig.groqKey.length < 5 && !AppConfig.espBuild) {
       return Center(
         child: Text(
@@ -159,6 +156,10 @@ class _VoiceRecorderScreenState
               "emergency",
               "emergencia",
               "pausa",
+              "resume",
+              "continue",
+              "continua",
+              "reanuda",
             ],
             onTranscriptionReceived: widget.addTrans,
             onKeywordDetected: (result) {
