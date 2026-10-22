@@ -27,11 +27,23 @@ class HomeScreen extends MqttThingScreen {
 }
 
 class _HomePageState extends MqttThingScreenState<HomeScreen> {
+  static bool panelControlHome = true;
   static const String wifiStateTopic = "config/wifi/state";
-
   static const numOutputs = 19;
   static const numInputs = 8;
   static const String machineStateTopic = "machine/state/read";
+
+  static const String commandsTopic = "machine/command";
+  static const List<String> Commands = [
+    "Start",
+    "Pause",
+    "Resume",
+    "Stop",
+    "ForceAuthorization",
+    "AuthorizeOutputOverride",
+    "DisableOutputOverride",
+  ];
+
   static const String outputsReadTopic = "machine/IO/outputs/read";
   static const String inputsReadTopic = "machine/IO/inputs/read";
 
@@ -59,11 +71,7 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
     }
   }
 
-  late List<Widget Function()> screens = [
-    _dashboardBody,
-    _recorder,
-    _configBody,
-  ];
+  late List<Widget Function()> screens = [_home, _recorder, _configBody];
 
   void mate() async {
     await ref.read(mqttProvider.future);
@@ -79,7 +87,6 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
 
     mqttNotifier.subscribe(voiceTranscriptionsTopic, addTranscription);
   }
-
 
   @override
   void subscribeToTopics() {
@@ -212,7 +219,47 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
     );
   }
 
+  Widget _home() {
+    final width = MediaQuery.sizeOf(context).width;
+
+    if (width > 600) {
+      return Row(
+        spacing: 15,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _dashboardBody()),
+          Expanded(child: _generateIOView()),
+        ],
+      );
+    }
+    Widget body = panelControlHome ? _dashboardBody() : _generateIOView();
+    return GestureDetector(
+      onHorizontalDragEnd: ((details) {
+        log("Drag velocity: ${details.primaryVelocity}");
+        if (details.primaryVelocity == null) return;
+
+        if (details.primaryVelocity! != 0) setState( () => panelControlHome = !panelControlHome);
+      }),
+      child: body,
+    );
+  }
+
   Widget _dashboardBody() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: List.generate(Commands.length, (index) {
+        return ElevatedButton(
+          onPressed: () {
+            mqttNotifier.publish(commandsTopic, Commands[index]);
+          },
+          child: Text(Commands[index]),
+        );
+      }),
+    );
+  }
+
+  Widget _generateIOView() {
     return VisualizeIOPage(
       stage: _stage,
       authorizedSystem: authorizedSystem,
