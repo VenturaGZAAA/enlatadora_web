@@ -232,13 +232,19 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
         ],
       );
     }
+
     Widget body = panelControlHome ? _dashboardBody() : _generateIOView();
     return GestureDetector(
-      onHorizontalDragEnd: ((details) {
-        log("Drag velocity: ${details.primaryVelocity}");
-        if (details.primaryVelocity == null) return;
+      onPanEnd: ((details) {
+        final velocity = details.velocity.pixelsPerSecond.dx;
+        log("Drag velocity: $velocity");
 
-        if (details.primaryVelocity! != 0) setState( () => panelControlHome = !panelControlHome);
+        if (velocity.abs() > 100.0) {
+          log("I'm changing father!");
+          setState(() {
+            panelControlHome = !panelControlHome;
+          });
+        }
       }),
       child: body,
     );
