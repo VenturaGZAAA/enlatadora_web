@@ -164,6 +164,19 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
         _wifiUpdated = true;
       });
     }
+    final width = MediaQuery.sizeOf(context).width;
+
+    Widget? floatingActionButton =
+        (!isWide(width) && ref.read(homeProvider.notifier).isHome)
+        ? IconButton(
+            onPressed: () {
+              setState(() {
+                panelControlHome = !panelControlHome;
+              });
+            },
+            icon: Icon(Icons.arrow_forward_ios_outlined),
+          )
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -218,16 +231,20 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
           ),
         ],
       ),
-      // floatingActionButton: floatingActionButton,
+      floatingActionButton: floatingActionButton,
     );
   }
 
   Offset? _dragStartPosition;
 
+  bool isWide(double width) {
+    return width > 600;
+  }
+
   Widget _home() {
     final width = MediaQuery.sizeOf(context).width;
 
-    if (width > 600) {
+    if (isWide(width)) {
       return Row(
         spacing: 15,
         crossAxisAlignment: CrossAxisAlignment.stretch,

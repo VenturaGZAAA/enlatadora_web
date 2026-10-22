@@ -16,6 +16,7 @@ class HomeStateNotifier extends Notifier<HomePage> {
   void goToConfig() {
     state = HomePage.config;
   }
+  bool get isHome => state == HomePage.control;
 }
 
 final homeProvider = NotifierProvider<HomeStateNotifier, HomePage>(
