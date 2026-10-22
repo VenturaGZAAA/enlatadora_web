@@ -11,6 +11,7 @@ import 'package:enlatadora_web/screens/voice_recorder_screen.dart';
 import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
 import 'package:enlatadora_web/widgets/reset_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:enlatadora_web/models/mock_data.dart';
 import 'package:mqtt_client/mqtt_client.dart';
@@ -182,7 +183,9 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
         ],
       ),
       body: Center(
-        child: Container(
+        child: AnimatedContainer(
+          duration: Duration(milliseconds: 1000),
+          curve: Curves.bounceIn,
           width: double.infinity,
           height: double.infinity,
           padding: EdgeInsets.all(25),
@@ -219,6 +222,8 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
     );
   }
 
+  Offset? _dragStartPosition;
+
   Widget _home() {
     final width = MediaQuery.sizeOf(context).width;
 
@@ -233,19 +238,30 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
       );
     }
 
-    Widget body = panelControlHome ? _dashboardBody() : _generateIOView();
-    return GestureDetector(
-      onPanEnd: ((details) {
-        final velocity = details.velocity.pixelsPerSecond.dx;
-        log("Drag velocity: $velocity");
+    Widget body = AnimatedContainer(
+      curve: Curves.bounceIn,
+      duration: Duration(milliseconds: 2000),
+      child: panelControlHome ? _dashboardBody() : _generateIOView(),
+    );
+    return Listener(
+      onPointerDown: (event) {
+        _dragStartPosition = event.position;
+      },
+      onPointerUp: (event) {
+        log("Start position: $_dragStartPosition");
 
-        if (velocity.abs() > 100.0) {
-          log("I'm changing father!");
+        if (_dragStartPosition == null) return;
+
+        final delta = event.position - _dragStartPosition!;
+        log("Raw delta: ${delta.dx}");
+
+        if (delta.dx.abs() > 50.0) {
           setState(() {
             panelControlHome = !panelControlHome;
           });
         }
-      }),
+        _dragStartPosition = null;
+      },
       child: body,
     );
   }
