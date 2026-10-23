@@ -76,7 +76,7 @@ class _VoiceRecorderScreenState
     Widget? espButton;
 
     if (AppConfig.espBuild) {
-      final buttonText = _espListening ? 'Press to Stop' : 'Hold to Record';
+      final buttonText = _espListening ? 'Press to Stop' : 'Press to Record';
       final buttonIcon = _espListening
           ? const Icon(Icons.stop)
           : const Icon(Icons.mic);

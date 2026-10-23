@@ -286,7 +286,7 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   Widget _dashboardBody() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(Commands.length, (index) {
         return ElevatedButton(
           onPressed: () {

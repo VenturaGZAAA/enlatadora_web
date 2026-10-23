@@ -332,7 +332,7 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
       );
     }
 
-    final buttonText = isRecording ? 'Press to Stop' : 'Hold to Record';
+    final buttonText = isRecording ? 'Press to Stop' : 'Press to Record';
     final buttonIcon = isRecording
         ? const Icon(Icons.stop)
         : const Icon(Icons.mic);
