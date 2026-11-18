@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 
 class VisualizeIOPage extends MqttThingScreen {
   const VisualizeIOPage({
-    required this.stage,
-    required this.authorizedSystem,
     required this.outputs,
     required this.inputs,
     super.key,
@@ -14,8 +12,6 @@ class VisualizeIOPage extends MqttThingScreen {
 
   final List<bool> outputs;
   final List<bool> inputs;
-  final String stage;
-  final bool authorizedSystem;
 
   @override
   MqttThingScreenState<MqttThingScreen> createState() {
@@ -39,19 +35,8 @@ class _CanTestPageState extends MqttThingScreenState<VisualizeIOPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(flex: 3, child: _outputsView()),
-        const SizedBox(height: 5),
         const Divider(color: Colors.grey),
-        const SizedBox(height: 5),
         Expanded(flex: 1, child: _inputsView()),
-        const Divider(color: Colors.grey),
-        const SizedBox(height: 5),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Text(widget.stage, textAlign: TextAlign.center),
-            Checkbox(value: widget.authorizedSystem, onChanged: (_) {}),
-          ],
-        ),
       ],
     );
   }

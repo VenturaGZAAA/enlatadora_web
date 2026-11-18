@@ -244,42 +244,55 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   Widget _home() {
     final width = MediaQuery.sizeOf(context).width;
 
-    if (isWide(width)) {
-      return Row(
-        spacing: 15,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(child: _dashboardBody()),
-          Expanded(child: _generateIOView()),
-        ],
-      );
-    }
+    return Column(
+      mainAxisSize: MainAxisSize.max,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            Text(_stage, textAlign: TextAlign.center),
+            Checkbox(value: authorizedSystem, onChanged: (_) {}),
+          ],
+        ),
+        const Divider(color: Colors.grey),
+        isWide(width)
+            ? Row(
+                spacing: 15,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: _dashboardBody()),
+                  Expanded(child: _generateIOView()),
+                ],
+              )
+            : Listener(
+                onPointerDown: (event) {
+                  _dragStartPosition = event.position;
+                },
+                onPointerUp: (event) {
+                  log("Start position: $_dragStartPosition");
 
-    Widget body = AnimatedContainer(
-      curve: Curves.bounceIn,
-      duration: Duration(milliseconds: 2000),
-      child: panelControlHome ? _dashboardBody() : _generateIOView(),
-    );
-    return Listener(
-      onPointerDown: (event) {
-        _dragStartPosition = event.position;
-      },
-      onPointerUp: (event) {
-        log("Start position: $_dragStartPosition");
+                  if (_dragStartPosition == null) return;
 
-        if (_dragStartPosition == null) return;
+                  final delta = event.position - _dragStartPosition!;
+                  log("Raw delta: ${delta.dx}");
 
-        final delta = event.position - _dragStartPosition!;
-        log("Raw delta: ${delta.dx}");
-
-        if (delta.dx.abs() > 50.0) {
-          setState(() {
-            panelControlHome = !panelControlHome;
-          });
-        }
-        _dragStartPosition = null;
-      },
-      child: body,
+                  if (delta.dx.abs() > 50.0) {
+                    setState(() {
+                      panelControlHome = !panelControlHome;
+                    });
+                  }
+                  _dragStartPosition = null;
+                },
+                child: AnimatedContainer(
+                  curve: Curves.bounceIn,
+                  duration: Duration(milliseconds: 2000),
+                  child: panelControlHome
+                      ? _dashboardBody()
+                      : _generateIOView(),
+                ),
+              ),
+      ],
     );
   }
 
@@ -299,12 +312,7 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   }
 
   Widget _generateIOView() {
-    return VisualizeIOPage(
-      stage: _stage,
-      authorizedSystem: authorizedSystem,
-      outputs: outputs,
-      inputs: inputs,
-    );
+    return VisualizeIOPage(outputs: outputs, inputs: inputs);
   }
 
   Widget _recorder() {

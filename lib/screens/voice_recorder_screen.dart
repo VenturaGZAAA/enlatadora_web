@@ -48,7 +48,9 @@ class _VoiceRecorderScreenState
           if (_espListening) {
             ref.read(recordingProvider.notifier).recordingStart();
           }
-        } finally {}
+        } catch (e) {
+          log("Exeption at voice listening: $e");
+        }
       });
     } else {
       mqttNotifier.publish("voice/keyword/command", "voiceOff");
