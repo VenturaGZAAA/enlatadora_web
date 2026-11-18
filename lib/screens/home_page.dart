@@ -188,7 +188,7 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
 
     Widget? floatingActionButton =
         (!isWide(width) && ref.read(homeProvider.notifier).isHome)
-        ? IconButton(
+        ? IconButton.outlined(
             onPressed: () {
               setState(() {
                 panelControlHome = !panelControlHome;
@@ -222,7 +222,15 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
           width: double.infinity,
           height: double.infinity,
           padding: EdgeInsets.all(25),
-          child: screens[ref.watch(homeProvider).index].call(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _statusCard(),
+              const Divider(color: Colors.grey),
+              const SizedBox(height: 16,),
+              Expanded(child: screens[ref.watch(homeProvider).index].call()),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: NavigationBar(
@@ -255,6 +263,77 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
     );
   }
 
+  Widget _statusCard() {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final statusColor = _machineRunning
+        ? (_machinePaused ? Colors.amber.shade800 : Colors.green.shade700)
+        : colorScheme.outline;
+    final statusText = _machineRunning
+        ? (_machinePaused ? "PAUSED" : "RUNNING")
+        : "STOPPED";
+
+    return Card(
+      elevation: 1,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Stage",
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                Text(
+                  _stage,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            Checkbox(value: _authorizedSystem, onChanged: (_) {}),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: statusColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: statusColor, width: 1.5),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _machineRunning
+                        ? (_machinePaused
+                              ? Icons.pause_circle_filled
+                              : Icons.play_circle_filled)
+                        : Icons.stop_circle,
+                    size: 18,
+                    color: statusColor,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    statusText,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Offset? _dragStartPosition;
 
   bool isWide(double width) {
@@ -263,19 +342,10 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
 
   Widget _home() {
     final width = MediaQuery.sizeOf(context).width;
-
     return Column(
       mainAxisSize: MainAxisSize.max,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Text(_stage, textAlign: TextAlign.center),
-            Checkbox(value: _authorizedSystem, onChanged: (_) {}),
-          ],
-        ),
-        const Divider(color: Colors.grey),
         Expanded(
           child: isWide(width)
               ? Row(
@@ -327,85 +397,123 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
      */
 
     if (!_machineHeartBeating) {
-      return Center(
-        child: Card(
-          color: Theme.of(context).colorScheme.errorContainer,
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.warning_amber_rounded,
-                  size: 48,
+      return Card(
+        color: Theme.of(context).colorScheme.errorContainer,
+        elevation: 2,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 72,
+                color: Theme.of(context).colorScheme.onErrorContainer,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Controller Offline",
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "Ensure the controller is powered on and the RT/TX cables are connected correctly.",
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: Theme.of(context).colorScheme.onErrorContainer,
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  "Warning: Machine Disconnected",
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                        fontWeight: FontWeight.bold,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Ensure the controller is powered on and the RT/TX cables are connected correctly.",
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       );
     }
 
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (!_machineRunning) {
       return Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ElevatedButton.icon(
-            onPressed: () {
-              mqttNotifier.publish(commandsTopic, "ForceAuthorization");
-              mqttNotifier.publish(commandsTopic, "Start");
-            },
-            icon: const Icon(Icons.play_arrow),
-            label: const Text("Start"),
+          Expanded(
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.green.shade700,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              onPressed: () {
+                mqttNotifier.publish(commandsTopic, "ForceAuthorization");
+                mqttNotifier.publish(commandsTopic, "Start");
+              },
+              icon: const Icon(Icons.play_arrow_rounded, size: 48),
+              label: const Text(
+                "START MACHINE",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
         ],
       );
     }
 
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ElevatedButton.icon(
-          onPressed: () {
-            if (_machinePaused) {
-              mqttNotifier.publish(commandsTopic, "Resume");
-            } else {
-              mqttNotifier.publish(commandsTopic, "Pause");
-            }
-          },
-          icon: Icon(_machinePaused ? Icons.play_arrow : Icons.pause),
-          label: Text(_machinePaused ? "Resume" : "Pause"),
-        ),
-        const SizedBox(height: 12),
-        ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            foregroundColor: Theme.of(context).colorScheme.error,
+        Expanded(
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: _machinePaused
+                  ? Colors.blue.shade700
+                  : Colors.amber.shade800,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            onPressed: () {
+              if (_machinePaused) {
+                mqttNotifier.publish(commandsTopic, "Resume");
+              } else {
+                mqttNotifier.publish(commandsTopic, "Pause");
+              }
+            },
+            icon: Icon(
+              _machinePaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+              size: 40,
+            ),
+            label: Text(
+              _machinePaused ? "RESUME" : "PAUSE",
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
           ),
-          onPressed: () {
-            mqttNotifier.publish(commandsTopic, "Stop");
-          },
-          icon: const Icon(Icons.stop),
-          label: const Text("Stop"),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            onPressed: () {
+              mqttNotifier.publish(commandsTopic, "Stop");
+            },
+            icon: const Icon(Icons.stop_rounded, size: 40),
+            label: const Text(
+              "STOP MACHINE",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
         ),
       ],
     );
