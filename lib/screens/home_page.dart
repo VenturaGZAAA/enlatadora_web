@@ -256,42 +256,44 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
           ],
         ),
         const Divider(color: Colors.grey),
-        isWide(width)
-            ? Row(
-                spacing: 15,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(child: _dashboardBody()),
-                  Expanded(child: _generateIOView()),
-                ],
-              )
-            : Listener(
-                onPointerDown: (event) {
-                  _dragStartPosition = event.position;
-                },
-                onPointerUp: (event) {
-                  log("Start position: $_dragStartPosition");
+        Expanded(
+          child: isWide(width)
+              ? Row(
+                  spacing: 15,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: _dashboardBody()),
+                    Expanded(child: _generateIOView()),
+                  ],
+                )
+              : Listener(
+                  onPointerDown: (event) {
+                    _dragStartPosition = event.position;
+                  },
+                  onPointerUp: (event) {
+                    log("Start position: $_dragStartPosition");
 
-                  if (_dragStartPosition == null) return;
+                    if (_dragStartPosition == null) return;
 
-                  final delta = event.position - _dragStartPosition!;
-                  log("Raw delta: ${delta.dx}");
+                    final delta = event.position - _dragStartPosition!;
+                    log("Raw delta: ${delta.dx}");
 
-                  if (delta.dx.abs() > 50.0) {
-                    setState(() {
-                      panelControlHome = !panelControlHome;
-                    });
-                  }
-                  _dragStartPosition = null;
-                },
-                child: AnimatedContainer(
-                  curve: Curves.bounceIn,
-                  duration: Duration(milliseconds: 2000),
-                  child: panelControlHome
-                      ? _dashboardBody()
-                      : _generateIOView(),
+                    if (delta.dx.abs() > 50.0) {
+                      setState(() {
+                        panelControlHome = !panelControlHome;
+                      });
+                    }
+                    _dragStartPosition = null;
+                  },
+                  child: AnimatedContainer(
+                    curve: Curves.bounceIn,
+                    duration: Duration(milliseconds: 2000),
+                    child: panelControlHome
+                        ? _dashboardBody()
+                        : _generateIOView(),
+                  ),
                 ),
-              ),
+        ),
       ],
     );
   }
