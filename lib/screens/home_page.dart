@@ -41,8 +41,6 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
     "Resume",
     "Stop",
     "ForceAuthorization",
-    "AuthorizeOutputOverride",
-    "DisableOutputOverride",
   ];
 
   static const String outputsReadTopic = "machine/IO/outputs/read";
@@ -50,8 +48,12 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
 
   final List<bool> outputs = List.filled(numOutputs, false);
   final List<bool> inputs = List.filled(numInputs, false);
+  bool _machineHeartBeating = false;
+  bool _machineRunning = false;
+  bool _machinePaused = false;
   String _stage = "Esperando...";
-  bool authorizedSystem = false;
+  bool _authorizedSystem = false;
+  bool _allowOutputOverride = false;
 
   bool _wifiUpdated = false;
   WiFiState? _wiFiState;
@@ -95,14 +97,32 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
 
     mqttNotifier.subscribe(machineStateTopic, (payload) {
       final state = jsonDecode(payload) as Map<String, dynamic>;
-      final stage = state["stage"];
-      if (stage is String) {
-        setState(() => _stage = stage);
-      }
-      final authorized = state["authorizedSystem"];
-      if (authorized is bool) {
-        authorizedSystem = authorized;
-      }
+      setState(() {
+        final heartBeating = state["machineHeartBeating"];
+        if (heartBeating is bool) {
+          _machineHeartBeating = heartBeating;
+        }
+        final running = state["running"];
+        if (running is bool) {
+          _machineRunning = running;
+        }
+        final paused = state["paused"];
+        if (paused is bool) {
+          _machinePaused = paused;
+        }
+        final stage = state["stage"];
+        if (stage is String) {
+          _stage = stage;
+        }
+        final authorized = state["authorizedSystem"];
+        if (authorized is bool) {
+          _authorizedSystem = authorized;
+        }
+        final outputOverride = state["output_override"];
+        if (outputOverride is bool) {
+          _allowOutputOverride = outputOverride;
+        }
+      });
     });
 
     mqttNotifier.subscribe(outputsReadTopic, (payload) {
@@ -252,7 +272,7 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             Text(_stage, textAlign: TextAlign.center),
-            Checkbox(value: authorizedSystem, onChanged: (_) {}),
+            Checkbox(value: _authorizedSystem, onChanged: (_) {}),
           ],
         ),
         const Divider(color: Colors.grey),
@@ -299,22 +319,104 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   }
 
   Widget _dashboardBody() {
+    /*
+    if the machine is not heart-beating, return a warning visual prompting the user to ensure the controller is powered on and the RT/TX cables are connected correctly.
+    if the machine is not running, return a button that will send the ForceAuthorization command followed by the Start command
+    if the machine is running, then it's two buttons to either Pause/Resume or Stop the machine.
+
+     */
+
+    if (!_machineHeartBeating) {
+      return Center(
+        child: Card(
+          color: Theme.of(context).colorScheme.errorContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 48,
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Warning: Machine Disconnected",
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Ensure the controller is powered on and the RT/TX cables are connected correctly.",
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (!_machineRunning) {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ElevatedButton.icon(
+            onPressed: () {
+              mqttNotifier.publish(commandsTopic, "ForceAuthorization");
+              mqttNotifier.publish(commandsTopic, "Start");
+            },
+            icon: const Icon(Icons.play_arrow),
+            label: const Text("Start"),
+          ),
+        ],
+      );
+    }
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(Commands.length, (index) {
-        return ElevatedButton(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ElevatedButton.icon(
           onPressed: () {
-            mqttNotifier.publish(commandsTopic, Commands[index]);
+            if (_machinePaused) {
+              mqttNotifier.publish(commandsTopic, "Resume");
+            } else {
+              mqttNotifier.publish(commandsTopic, "Pause");
+            }
           },
-          child: Text(Commands[index]),
-        );
-      }),
+          icon: Icon(_machinePaused ? Icons.play_arrow : Icons.pause),
+          label: Text(_machinePaused ? "Resume" : "Pause"),
+        ),
+        const SizedBox(height: 12),
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Theme.of(context).colorScheme.error,
+          ),
+          onPressed: () {
+            mqttNotifier.publish(commandsTopic, "Stop");
+          },
+          icon: const Icon(Icons.stop),
+          label: const Text("Stop"),
+        ),
+      ],
     );
   }
 
   Widget _generateIOView() {
-    return VisualizeIOPage(outputs: outputs, inputs: inputs);
+    return VisualizeIOPage(
+      allowOutputOverride: _allowOutputOverride,
+      outputs: outputs,
+      inputs: inputs,
+    );
   }
 
   Widget _recorder() {

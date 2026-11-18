@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -7,11 +6,13 @@ class VisualizeIOPage extends MqttThingScreen {
   const VisualizeIOPage({
     required this.outputs,
     required this.inputs,
+    required this.allowOutputOverride,
     super.key,
   }) : super(rootTopico: "");
 
   final List<bool> outputs;
   final List<bool> inputs;
+  final bool allowOutputOverride;
 
   @override
   MqttThingScreenState<MqttThingScreen> createState() {
@@ -35,6 +36,20 @@ class _CanTestPageState extends MqttThingScreenState<VisualizeIOPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Expanded(flex: 3, child: _outputsView()),
+        Row(
+          children: [
+            const Text("Allow output override: "),
+            Checkbox(
+              value: widget.allowOutputOverride,
+              onChanged: (_) {
+                final data = widget.allowOutputOverride
+                    ? "DisableOutputOverride"
+                    : "AuthorizeOutputOverride";
+                mqttNotifier.publish("machine/command", data);
+              },
+            ),
+          ],
+        ),
         const Divider(color: Colors.grey),
         Expanded(flex: 1, child: _inputsView()),
       ],
