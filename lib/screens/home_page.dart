@@ -91,6 +91,8 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
         final heartBeating = state["machineHeartBeating"];
         if (heartBeating is bool) {
           _machineHeartBeating = heartBeating;
+        } else {
+          _machineHeartBeating = null;
         }
         final running = state["running"];
         if (running is bool) {
@@ -394,7 +396,13 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
       return Column(
         mainAxisSize: MainAxisSize.max,
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [CircularProgressIndicator(), Text("Esperando conexion...")],
+        children: [
+          SizedBox.fromSize(
+            size: const Size.square(size),
+            child: const Expanded(child: CircularProgressIndicator()),
+          ),
+          const Text("Esperando conexion..."),
+        ],
       );
     }
 
