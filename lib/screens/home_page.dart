@@ -11,7 +11,6 @@ import 'package:enlatadora_web/screens/voice_recorder_screen.dart';
 import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
 import 'package:enlatadora_web/widgets/reset_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:enlatadora_web/models/mock_data.dart';
 import 'package:mqtt_client/mqtt_client.dart';
@@ -35,23 +34,16 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   static const String machineStateTopic = "machine/state/read";
 
   static const String commandsTopic = "machine/command";
-  static const List<String> Commands = [
-    "Start",
-    "Pause",
-    "Resume",
-    "Stop",
-    "ForceAuthorization",
-  ];
 
   static const String outputsReadTopic = "machine/IO/outputs/read";
   static const String inputsReadTopic = "machine/IO/inputs/read";
 
   final List<bool> outputs = List.filled(numOutputs, false);
   final List<bool> inputs = List.filled(numInputs, false);
-  bool _machineHeartBeating = false;
+  bool? _machineHeartBeating;
   bool _machineRunning = false;
   bool _machinePaused = false;
-  String _stage = "Esperando...";
+  String? _stage;
   bool _authorizedSystem = false;
   bool _allowOutputOverride = false;
 
@@ -61,8 +53,6 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   static const String voiceTranscriptionsTopic = "voice/keyword/transcription";
   final List<MockData> _transcriptions = [];
   static const int maxTranscriptions = 20;
-
-  static const String voiceMatchTopic = "voice/keyword/match";
 
   void addTranscription(String transcription) {
     setState(() {
@@ -227,7 +217,7 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
             children: [
               _statusCard(),
               const Divider(color: Colors.grey),
-              const SizedBox(height: 16,),
+              const SizedBox(height: 16),
               Expanded(child: screens[ref.watch(homeProvider).index].call()),
             ],
           ),
@@ -276,28 +266,46 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
     return Card(
       elevation: 1,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "Stage",
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    _stage ?? "",
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
             Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  "Stage",
+                  "Authorized",
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
                 ),
-                Text(
-                  _stage,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Checkbox(value: _authorizedSystem, onChanged: (_) {}),
               ],
             ),
-            Checkbox(value: _authorizedSystem, onChanged: (_) {}),
+            const SizedBox(width: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -342,61 +350,55 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
 
   Widget _home() {
     final width = MediaQuery.sizeOf(context).width;
-    return Column(
-      mainAxisSize: MainAxisSize.max,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(
-          child: isWide(width)
-              ? Row(
-                  spacing: 15,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(child: _dashboardBody()),
-                    Expanded(child: _generateIOView()),
-                  ],
-                )
-              : Listener(
-                  onPointerDown: (event) {
-                    _dragStartPosition = event.position;
-                  },
-                  onPointerUp: (event) {
-                    log("Start position: $_dragStartPosition");
+    if (isWide(width)) {
+      return Row(
+        spacing: 15,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: _dashboardBody()),
+          Expanded(child: _generateIOView()),
+        ],
+      );
+    }
 
-                    if (_dragStartPosition == null) return;
+    return Listener(
+      onPointerDown: (event) {
+        _dragStartPosition = event.position;
+      },
+      onPointerUp: (event) {
+        log("Start position: $_dragStartPosition");
 
-                    final delta = event.position - _dragStartPosition!;
-                    log("Raw delta: ${delta.dx}");
+        if (_dragStartPosition == null) return;
 
-                    if (delta.dx.abs() > 50.0) {
-                      setState(() {
-                        panelControlHome = !panelControlHome;
-                      });
-                    }
-                    _dragStartPosition = null;
-                  },
-                  child: AnimatedContainer(
-                    curve: Curves.bounceIn,
-                    duration: Duration(milliseconds: 2000),
-                    child: panelControlHome
-                        ? _dashboardBody()
-                        : _generateIOView(),
-                  ),
-                ),
-        ),
-      ],
+        final delta = event.position - _dragStartPosition!;
+        log("Raw delta: ${delta.dx}");
+
+        if (delta.dx.abs() > 50.0) {
+          setState(() {
+            panelControlHome = !panelControlHome;
+          });
+        }
+        _dragStartPosition = null;
+      },
+      child: AnimatedContainer(
+        curve: Curves.bounceIn,
+        duration: const Duration(milliseconds: 2000),
+        child: panelControlHome ? _dashboardBody() : _generateIOView(),
+      ),
     );
   }
 
   Widget _dashboardBody() {
-    /*
-    if the machine is not heart-beating, return a warning visual prompting the user to ensure the controller is powered on and the RT/TX cables are connected correctly.
-    if the machine is not running, return a button that will send the ForceAuthorization command followed by the Start command
-    if the machine is running, then it's two buttons to either Pause/Resume or Stop the machine.
+    if (_machineHeartBeating == null) {
+      const size = 60.0;
+      return Column(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [CircularProgressIndicator(), Text("Esperando conexion...")],
+      );
+    }
 
-     */
-
-    if (!_machineHeartBeating) {
+    if (!_machineHeartBeating!) {
       return Card(
         color: Theme.of(context).colorScheme.errorContainer,
         elevation: 2,
