@@ -52,3 +52,4 @@ assets/.env
 environment/config_esp.json
 environment/config_release.json
 temp_recording.wav
+deploy.sh
