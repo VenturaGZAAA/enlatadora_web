@@ -407,6 +407,7 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.max,
+      spacing: 8,
       children: [
         Expanded(
           child: Listener(
@@ -440,6 +441,7 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
             ),
           ),
         ),
+        const Divider(color: Colors.grey),
         Row(
           mainAxisSize: MainAxisSize.max,
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
