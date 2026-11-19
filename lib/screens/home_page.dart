@@ -18,6 +18,8 @@ import 'package:mqtt_client/mqtt_client.dart';
 import 'package:web_socket_client/web_socket_client.dart' as ws;
 import 'package:enlatadora_web/providers/home_state_provider.dart';
 
+enum HomeView { control, io, chat }
+
 class HomeScreen extends MqttThingScreen {
   const HomeScreen({super.key, required super.rootTopico})
     : super(name: "home");
@@ -34,7 +36,7 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   final List<MockData> controllerRx = [];
   ws.ConnectionState _wsState = const ws.Connecting();
   final TextEditingController _chatInputController = TextEditingController();
-  static bool panelControlHome = true;
+  static HomeView _homeView = HomeView.control;
   static const String wifiStateTopic = "config/wifi/state";
   static const numOutputs = 19;
   static const numInputs = 8;
@@ -201,6 +203,26 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
     return _layout();
   }
 
+  void nextHome() {
+    int nextHome = _homeView.index + 1;
+    if (nextHome >= HomeView.values.length) {
+      nextHome = 0;
+    }
+    setState(() {
+      _homeView = HomeView.values[nextHome];
+    });
+  }
+
+  void prevHome() {
+    int prevHome = _homeView.index - 1;
+    if (prevHome < 0) {
+      prevHome = HomeView.values.length - 1;
+    }
+    setState(() {
+      _homeView = HomeView.values[prevHome];
+    });
+  }
+
   Widget _layout() {
     if (_wiFiState != null && _wiFiState!.isInvalid() && !_wifiUpdated) {
       setState(() {
@@ -208,20 +230,6 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
         _wifiUpdated = true;
       });
     }
-    final width = MediaQuery.sizeOf(context).width;
-
-    Widget? floatingActionButton =
-        (!isWide(width) && ref.read(homeProvider.notifier).isHome)
-        ? IconButton.outlined(
-            onPressed: () {
-              setState(() {
-                panelControlHome = !panelControlHome;
-              });
-            },
-            icon: Icon(Icons.arrow_forward_ios_outlined),
-          )
-        : null;
-
     return Scaffold(
       appBar: AppBar(
         title: Text(super.widget.name),
@@ -283,7 +291,6 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: floatingActionButton,
     );
   }
 
@@ -379,11 +386,12 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   Offset? _dragStartPosition;
 
   bool isWide(double width) {
-    return width > 600;
+    return width > 800;
   }
 
   Widget _home() {
     final width = MediaQuery.sizeOf(context).width;
+
     if (isWide(width)) {
       return Row(
         spacing: 15,
@@ -391,34 +399,65 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
         children: [
           Expanded(child: _dashboardBody()),
           Expanded(child: _generateIOView()),
+          Expanded(child: _buildChatWindow()),
         ],
       );
     }
 
-    return Listener(
-      onPointerDown: (event) {
-        _dragStartPosition = event.position;
-      },
-      onPointerUp: (event) {
-        log("Start position: $_dragStartPosition");
-
-        if (_dragStartPosition == null) return;
-
-        final delta = event.position - _dragStartPosition!;
-        log("Raw delta: ${delta.dx}");
-
-        if (delta.dx.abs() > 50.0) {
-          setState(() {
-            panelControlHome = !panelControlHome;
-          });
-        }
-        _dragStartPosition = null;
-      },
-      child: AnimatedContainer(
-        curve: Curves.bounceIn,
-        duration: const Duration(milliseconds: 2000),
-        child: panelControlHome ? _dashboardBody() : _generateIOView(),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.max,
+      children: [
+        Expanded(
+          child: Listener(
+            onPointerDown: (event) {
+              _dragStartPosition = event.position;
+            },
+            onPointerUp: (event) {
+              log("Start position: $_dragStartPosition");
+              
+              if (_dragStartPosition == null) return;
+              
+              final delta = event.position - _dragStartPosition!;
+              log("Raw delta: ${delta.dx}");
+              const threshold = 50.0;
+              if (delta.dx > threshold) {
+                prevHome();
+              } else if (delta.dx < -threshold) {
+                nextHome();
+              }
+              
+              _dragStartPosition = null;
+            },
+            child: AnimatedContainer(
+              curve: Curves.bounceIn,
+              duration: const Duration(milliseconds: 2000),
+              child: switch (_homeView) {
+                HomeView.control => _dashboardBody(),
+                HomeView.io => _generateIOView(),
+                HomeView.chat => _buildChatWindow(),
+              },
+            ),
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ElevatedButton.icon(
+              onPressed: prevHome,
+              icon: Icon(Icons.arrow_back),
+              label: const Text("Prev"),
+            ),
+            const Text("Try swipe"),
+            ElevatedButton.icon(
+              onPressed: nextHome,
+              icon: Icon(Icons.arrow_forward),
+              label: const Text("Next"),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
