@@ -16,21 +16,21 @@ import 'package:flutter/material.dart';
 import 'package:enlatadora_web/models/mock_data.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:web_socket_client/web_socket_client.dart' as ws;
-import 'package:enlatadora_web/providers/home_state_provider.dart';
+import 'package:enlatadora_web/providers/main_state_provider.dart';
 
 enum HomeView { control, io, chat }
 
-class HomeScreen extends MqttThingScreen {
-  const HomeScreen({super.key, required super.rootTopico})
+class MainScreen extends MqttThingScreen {
+  const MainScreen({super.key, required super.rootTopico})
     : super(name: "home");
 
   @override
   MqttThingScreenState<MqttThingScreen> createState() {
-    return _HomePageState();
+    return _MainPageState();
   }
 }
 
-class _HomePageState extends MqttThingScreenState<HomeScreen> {
+class _MainPageState extends MqttThingScreenState<MainScreen> {
   final controllerSocket = ws.WebSocket(Uri.parse(AppConfig.controller_ws));
   final List<MockData> controllerTx = [];
   final List<MockData> controllerRx = [];
@@ -226,7 +226,7 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   Widget _layout() {
     if (_wiFiState != null && _wiFiState!.isInvalid() && !_wifiUpdated) {
       setState(() {
-        ref.read(homeProvider.notifier).goToConfig();
+        ref.read(mainPageProvider.notifier).goToConfig();
         _wifiUpdated = true;
       });
     }
@@ -234,16 +234,16 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
       appBar: AppBar(
         title: Text(super.widget.name),
         actions: [
-          ...switch (ref.read(homeProvider)) {
-            HomePage.control => [],
-            HomePage.voice => [
+          ...switch (ref.read(mainPageProvider)) {
+            MainPage.control => [],
+            MainPage.voice => [
               Icon(
                 Icons.record_voice_over,
                 color: ref.watch(recordingProvider) ? Colors.lightGreen : null,
               ),
               SizedBox(width: 5),
             ],
-            HomePage.config => [MqttConfigButton()],
+            MainPage.config => [MqttConfigButton()],
           },
         ],
       ),
@@ -260,16 +260,16 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
               _statusCard(),
               const Divider(color: Colors.grey),
               const SizedBox(height: 16),
-              Expanded(child: screens[ref.watch(homeProvider).index].call()),
+              Expanded(child: screens[ref.watch(mainPageProvider).index].call()),
             ],
           ),
         ),
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: ref.watch(homeProvider).index,
+        selectedIndex: ref.watch(mainPageProvider).index,
         onDestinationSelected: (index) {
-          ref.read(homeProvider.notifier).page = HomePage.values[index];
-          if (ref.read(homeProvider) == HomePage.config) {
+          ref.read(mainPageProvider.notifier).page = MainPage.values[index];
+          if (ref.read(mainPageProvider) == MainPage.config) {
             _wiFiState = null;
           }
         },

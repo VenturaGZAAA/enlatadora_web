@@ -49,7 +49,7 @@ class MyApp extends ConsumerWidget {
         textTheme: textTheme,
       ),
       themeMode: ThemeMode.system,
-      home: const HomeScreen(rootTopico: 'home/test/'),
+      home: const MainScreen(rootTopico: 'home/test/'),
     );
   }
 }
