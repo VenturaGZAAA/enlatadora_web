@@ -38,30 +38,34 @@ class _VoiceRecorderScreenState
 
   @override
   void subscribeToTopics() {
-    if (AppConfig.espBuild) {
-      mqttNotifier.subscribe(espListeningTopic, (payload) {
-        try {
-          bool value = bool.parse(payload);
-          setState(() {
-            _espListening = value;
-          });
-          if (_espListening) {
-            ref.read(recordingProvider.notifier).recordingStart();
-          }
-        } catch (e) {
-          log("Exeption at voice listening: $e");
+    mqttNotifier.subscribe(espListeningTopic, (payload) {
+      try {
+        bool? value = switch (payload) {
+          "0" => false,
+          "1" => true,
+          _ => null,
+        };
+        if (value == null) {
+          throw ("Invalid listening payload");
         }
-      });
-    } else {
+        setState(() {
+          _espListening = value;
+        });
+        if (_espListening && AppConfig.espBuild) {
+          ref.read(recordingProvider.notifier).recordingStart();
+        }
+      } catch (e) {
+        log("Exeption at voice listening: $e");
+      }
+    });
+    if (!AppConfig.espBuild) {
       mqttNotifier.publish("voice/keyword/command", "voiceOff");
     }
   }
 
   @override
   void unsubscribeToTopics() {
-    if (AppConfig.espBuild) {
-      mqttNotifier.unsubscribe(espListeningTopic);
-    }
+    mqttNotifier.unsubscribe(espListeningTopic);
   }
 
   @override

@@ -1,6 +1,6 @@
 {
-    "name": "enlatadora_web",
-    "short_name": "enlatadora_web",
+    "name": "Enlatadora",
+    "short_name": "Enlatadora",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#hexcode",
