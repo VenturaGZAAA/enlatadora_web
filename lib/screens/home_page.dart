@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 
+import 'package:enlatadora_web/models/app_config.dart';
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/providers/recording_provider.dart';
@@ -14,6 +15,7 @@ import 'package:enlatadora_web/widgets/wifi_config_page.dart';
 import 'package:flutter/material.dart';
 import 'package:enlatadora_web/models/mock_data.dart';
 import 'package:mqtt_client/mqtt_client.dart';
+import 'package:web_socket_client/web_socket_client.dart' as ws;
 import 'package:enlatadora_web/providers/home_state_provider.dart';
 
 class HomeScreen extends MqttThingScreen {
@@ -27,6 +29,11 @@ class HomeScreen extends MqttThingScreen {
 }
 
 class _HomePageState extends MqttThingScreenState<HomeScreen> {
+  final controllerSocket = ws.WebSocket(Uri.parse(AppConfig.controller_ws));
+  final List<MockData> controllerTx = [];
+  final List<MockData> controllerRx = [];
+  ws.ConnectionState _wsState = const ws.Connecting();
+  final TextEditingController _chatInputController = TextEditingController();
   static bool panelControlHome = true;
   static const String wifiStateTopic = "config/wifi/state";
   static const numOutputs = 19;
@@ -151,6 +158,29 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+
+    controllerSocket.connection.listen((state) {
+      log("Controller WS state: $state");
+      if (mounted) {
+        setState(() {
+          _wsState = state;
+        });
+      }
+    });
+
+    controllerSocket.messages.listen((message) {
+      log("Controller message: $message");
+      if (mounted) {
+        setState(() {
+          controllerRx.add(MockData(DateTime.now(), message.toString()));
+        });
+      }
+    });
+  }
+
+  @override
   void unsubscribeToTopics() {
     mqttNotifier.unsubscribe(wifiStateTopic);
     mqttNotifier.unsubscribe(machineStateTopic);
@@ -160,8 +190,10 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
 
   @override
   void dispose() {
+    _chatInputController.dispose();
     super.dispose();
     mqttNotifier.disconnect(manual: false);
+    controllerSocket.close();
   }
 
   @override
@@ -547,14 +579,255 @@ class _HomePageState extends MqttThingScreenState<HomeScreen> {
   Widget _configBody() {
     return ListView(
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.max,
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          spacing: 15,
-          children: [WifiConfigPage(), ResetButton()],
-        ),
+        // _buildChatWindow(),
+        // const Divider(color: Colors.grey),
+        // const SizedBox(height: 16),
+        WifiConfigPage(),
+        const SizedBox(height: 16),
+        const Divider(color: Colors.grey),
+        ResetButton(),
       ],
     );
   }
+
+  void _sendMessage() {
+    final text = _chatInputController.text.trim();
+    if (text.isEmpty) return;
+
+    controllerSocket.send(text);
+    setState(() {
+      controllerTx.add(MockData(DateTime.now(), text));
+    });
+    _chatInputController.clear();
+  }
+
+  Widget _buildConnectionInfo() {
+    return switch (_wsState) {
+      ws.Connected() => const SizedBox.shrink(),
+      ws.Disconnected() => _buildInfoChip("Controller WS disconnected"),
+      ws.Connecting() => _buildInfoChip("Connecting to Controller WS..."),
+      ws.Reconnecting() => _buildInfoChip("Reconnecting to Controller WS..."),
+      ws.Disconnecting() => _buildInfoChip(
+        "Disconnecting from Controller WS...",
+      ),
+      _ => _buildInfoChip("Controller WS offline"),
+    };
+  }
+
+  Widget _buildInfoChip(String statusText) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.info_outline,
+            size: 16,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            statusText,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatMessageItem(_ChatMessage chatMsg) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isTx = chatMsg.isTx;
+    final timeStr =
+        "${chatMsg.data.time.hour.toString().padLeft(2, '0')}:${chatMsg.data.time.minute.toString().padLeft(2, '0')}:${chatMsg.data.time.second.toString().padLeft(2, '0')}";
+
+    final bubbleBg = isTx
+        ? colorScheme.primaryContainer
+        : colorScheme.secondaryContainer;
+    final textColor = isTx
+        ? colorScheme.onPrimaryContainer
+        : colorScheme.onSecondaryContainer;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Column(
+        crossAxisAlignment: isTx
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [
+          Container(
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.sizeOf(context).width * 0.7,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: bubbleBg,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(12),
+                topRight: const Radius.circular(12),
+                bottomLeft: Radius.circular(isTx ? 12 : 2),
+                bottomRight: Radius.circular(isTx ? 2 : 12),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: isTx
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isTx
+                            ? colorScheme.primary
+                            : colorScheme.secondary,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        isTx ? "Tx" : "Rx",
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: isTx
+                              ? colorScheme.onPrimary
+                              : colorScheme.onSecondary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      timeStr,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: textColor.withValues(alpha: 0.7),
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  chatMsg.data.message,
+                  style: theme.textTheme.bodyMedium?.copyWith(color: textColor),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChatWindow() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    final allMessages = [
+      ...controllerTx.map((m) => _ChatMessage(data: m, isTx: true)),
+      ...controllerRx.map((m) => _ChatMessage(data: m, isTx: false)),
+    ]..sort((a, b) => b.data.time.compareTo(a.data.time));
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        height: 350,
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Controller Direct Chat",
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                _buildConnectionInfo(),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: colorScheme.outlineVariant,
+                    width: 1,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                child: allMessages.isEmpty
+                    ? Center(
+                        child: Text(
+                          "No messages exchanged yet",
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        reverse: true,
+                        itemCount: allMessages.length,
+                        itemBuilder: (context, index) {
+                          final msg = allMessages[index];
+                          return _buildChatMessageItem(msg);
+                        },
+                      ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _chatInputController,
+                    decoration: InputDecoration(
+                      hintText: "Type message to controller...",
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onSubmitted: (_) => _sendMessage(),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: _sendMessage,
+                  icon: const Icon(Icons.send),
+                  tooltip: "Send message",
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatMessage {
+  const _ChatMessage({required this.data, required this.isTx});
+
+  final MockData data;
+  final bool isTx;
 }
