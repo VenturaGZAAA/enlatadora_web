@@ -21,6 +21,8 @@ import 'package:enlatadora_web/providers/main_state_provider.dart';
 
 enum HomeView { control, io, chat }
 
+enum ConfigView { master, control }
+
 class MainScreen extends MqttThingScreen {
   const MainScreen({super.key, required super.rootTopico})
     : super(name: "home");
@@ -38,6 +40,7 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
   ws.ConnectionState _wsState = const ws.Connecting();
   final TextEditingController _chatInputController = TextEditingController();
   static HomeView _homeView = HomeView.control;
+  static ConfigView _configView = ConfigView.master;
   static const String wifiStateTopic = "config/wifi/state";
   static const numOutputs = 19;
   static const numInputs = 8;
@@ -609,18 +612,41 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
     return VoiceRecorderScreen();
   }
 
+  void publishWifi(String wifi) {
+    if (_configView == ConfigView.master) {
+      mqttNotifier.publish("config/wifi/set", wifi, qos: MqttQos.exactlyOnce);
+    } else {
+      controllerSocket.send(wifi);
+    }
+  }
+
   Widget _configBody() {
     return ListView(
       children: [
-        WifiConfigPage(),
-        const SizedBox(height: 16),
-        const Divider(color: Colors.grey),
-        ResetButton(),
+        SegmentedButton<ConfigView>(
+          segments: [
+            ButtonSegment(value: ConfigView.master, label: Text("Master")),
+            ButtonSegment(value: ConfigView.control, label: Text("Controller")),
+          ],
+          selected: {_configView},
+          onSelectionChanged: (s) {
+            setState(() {
+              _configView = s.first;
+            });
+          },
+        ),
+
+        WifiConfigPage(publishData: publishWifi),
+        if (_configView == ConfigView.master) ...[
+          const SizedBox(height: 16),
+          const Divider(color: Colors.grey),
+          ResetButton(),
+        ],
       ],
     );
   }
 
-  void _sendMessage() {
+  void _sendWsMessage() {
     final text = _chatInputController.text.trim();
     if (text.isEmpty) return;
 
@@ -845,12 +871,12 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    onSubmitted: (_) => _sendMessage(),
+                    onSubmitted: (_) => _sendWsMessage(),
                   ),
                 ),
                 const SizedBox(width: 8),
                 IconButton.filled(
-                  onPressed: _sendMessage,
+                  onPressed: _sendWsMessage,
                   icon: const Icon(Icons.send),
                   tooltip: "Send message",
                 ),

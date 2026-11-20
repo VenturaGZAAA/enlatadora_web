@@ -9,7 +9,9 @@ import 'package:mqtt_client/mqtt_client.dart';
 import 'package:enlatadora_web/widgets/helpers.dart';
 
 class WifiConfigPage extends ConsumerStatefulWidget {
-  const WifiConfigPage({super.key});
+  const WifiConfigPage({required this.publishData,super.key});
+
+  final void Function(String) publishData;
 
   @override
   ConsumerState<ConsumerStatefulWidget> createState() {
@@ -44,11 +46,14 @@ class WifiConfigPageState extends ConsumerState<WifiConfigPage> {
 
   void _publishWiFiData(WiFiData data, String message) {
     const encoder = JsonEncoder.withIndent('  ');
-    mqttNotifier.publish(
-      "config/wifi/set",
-      encoder.convert(data),
-      qos: MqttQos.exactlyOnce,
-    );
+    // mqttNotifier.publish(
+    //   "config/wifi/set",
+    //   encoder.convert(data),
+    //   qos: MqttQos.exactlyOnce,
+    // );
+
+    widget.publishData.call(encoder.convert(data));
+
 
     if (mounted) {
       ScaffoldMessenger.maybeOf(
