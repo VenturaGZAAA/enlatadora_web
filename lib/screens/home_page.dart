@@ -260,7 +260,9 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
               _statusCard(),
               const Divider(color: Colors.grey),
               const SizedBox(height: 16),
-              Expanded(child: screens[ref.watch(mainPageProvider).index].call()),
+              Expanded(
+                child: screens[ref.watch(mainPageProvider).index].call(),
+              ),
             ],
           ),
         ),
@@ -416,9 +418,9 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
             },
             onPointerUp: (event) {
               log("Start position: $_dragStartPosition");
-              
+
               if (_dragStartPosition == null) return;
-              
+
               final delta = event.position - _dragStartPosition!;
               log("Raw delta: ${delta.dx}");
               const threshold = 100.0;
@@ -427,7 +429,7 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
               } else if (delta.dx < -threshold) {
                 nextHome();
               }
-              
+
               _dragStartPosition = null;
             },
             child: AnimatedContainer(
@@ -468,12 +470,13 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
       const size = 60.0;
       return Column(
         mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SizedBox.fromSize(
             size: const Size.square(size),
-            child: const Expanded(child: CircularProgressIndicator()),
+            child: const CircularProgressIndicator(),
           ),
+          const SizedBox(height: 16),
           const Text("Esperando conexion..."),
         ],
       );

@@ -21,11 +21,11 @@ class VisualizeIOPage extends MqttThingScreen {
 }
 
 class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
-  static const _maxItemWith = 100.0;
+  static const _maxItemWidth = 100.0;
   String _searchQuery = "";
 
   static const Color _outputActiveColor = Color(0xFF10B981);
-  static const Color _inputActiveColor = Colors.amber; // Emerald green
+  static const Color _inputActiveColor = Colors.amber;
 
   @override
   void subscribeToTopics() {}
@@ -72,13 +72,13 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeaderControlCard(colorScheme),
           const SizedBox(height: 16),
-          _buildStatsAndFilterBar(colorScheme),
+          _buildSearchBar(),
           const SizedBox(height: 20),
           _buildOutputsSection(colorScheme),
           const SizedBox(height: 24),
@@ -127,27 +127,13 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        "Manual Output\nOverride",
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-
-                ],
+              child: Text(
+                "Manual Output Override",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
               ),
             ),
             Switch.adaptive(
@@ -162,40 +148,24 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
     );
   }
 
-  Widget _buildStatsAndFilterBar(ColorScheme colorScheme) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Column(
-          children: [
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: "Search channel (e.g. Q1, I0)...",
-                      prefixIcon: const Icon(Icons.search, size: 20),
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onChanged: (val) {
-                      setState(() {
-                        _searchQuery = val.trim();
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-              ],
-            ),
-          ],
-        );
+  Widget _buildSearchBar() {
+    return TextField(
+      decoration: InputDecoration(
+        hintText: "Search channel (e.g. Q1, I0)...",
+        prefixIcon: const Icon(Icons.search, size: 20),
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+      onChanged: (val) {
+        setState(() {
+          _searchQuery = val.trim();
+        });
       },
     );
   }
@@ -228,8 +198,7 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: _maxItemWith,
-              // mainAxisExtent: 125,
+              maxCrossAxisExtent: _maxItemWidth,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
             ),
@@ -247,6 +216,7 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
   Widget _buildOutputTile(int index, bool isActive, ColorScheme colorScheme) {
     final isOverrideAllowed = widget.allowOutputOverride;
     const double iconSize = 24;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
@@ -355,8 +325,7 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: _maxItemWith,
-              // mainAxisExtent: 110,
+              maxCrossAxisExtent: _maxItemWidth,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
             ),
@@ -448,18 +417,13 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
         Icon(icon, size: 22, color: colorScheme.primary),
         const SizedBox(width: 8),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-            ],
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
           ),
         ),
         Container(
