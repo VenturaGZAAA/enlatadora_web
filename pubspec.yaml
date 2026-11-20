@@ -12,11 +12,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^2.0.0
   mqtt_client: ^10.11.11
   record: ^7.1.1
 #  flutter_dotenv: ^6.0.1
-  google_fonts: ^8.2.1
+  google_fonts: ^9.0.0
   flutter_riverpod: ^3.3.1
   provider: ^6.1.5+1
   json_annotation: ^4.12.0
