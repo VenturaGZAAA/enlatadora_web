@@ -1,6 +1,6 @@
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../widgets/helpers.dart';
 
 class ResetButton extends ConsumerWidget {

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:mqtt_client/mqtt_client.dart';

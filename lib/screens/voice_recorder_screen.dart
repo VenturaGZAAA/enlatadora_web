@@ -12,16 +12,12 @@ import 'package:enlatadora_web/models/mock_data.dart';
 import 'dart:developer';
 import 'package:enlatadora_web/models/app_config.dart';
 import 'package:enlatadora_web/widgets/voice_recorder_button.dart';
+import 'package:enlatadora_web/providers/transcriptions_provider.dart';
 
 class VoiceRecorderScreen extends MqttThingScreen {
   const VoiceRecorderScreen({
-    required this.trans,
-    required this.addTrans,
     super.key,
   }) : super(rootTopico: "");
-
-  final List<MockData> trans;
-  final void Function(String) addTrans;
 
   @override
   MqttThingScreenState<MqttThingScreen> createState() {
@@ -100,6 +96,8 @@ class _VoiceRecorderScreenState
       );
     }
 
+    final transcriptions = ref.watch(transcriptionsProvider);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -120,7 +118,7 @@ class _VoiceRecorderScreenState
             ),
           ),
         ),
-        if (widget.trans.isNotEmpty)
+        if (transcriptions.isNotEmpty)
           SizedBox(
             height: 150,
             child: Container(
@@ -136,10 +134,10 @@ class _VoiceRecorderScreenState
               ),
 
               child: ListView.builder(
-                itemCount: widget.trans.length,
+                itemCount: transcriptions.length,
                 reverse: false,
                 itemBuilder: (ctx, index) =>
-                    Center(child: widget.trans[index].view()),
+                    Center(child: transcriptions[index].view()),
               ),
             ),
           ),
@@ -167,7 +165,6 @@ class _VoiceRecorderScreenState
               "continua",
               "reanuda",
             ],
-            onTranscriptionReceived: widget.addTrans,
             onKeywordDetected: (result) {
               log("Voice result: $result");
               setState(() {

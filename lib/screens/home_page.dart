@@ -5,6 +5,7 @@ import 'package:enlatadora_web/models/app_config.dart';
 import 'package:enlatadora_web/models/wifi_data.dart';
 import 'package:enlatadora_web/providers/mqtt_riverpod.dart';
 import 'package:enlatadora_web/providers/recording_provider.dart';
+import 'package:enlatadora_web/providers/transcriptions_provider.dart';
 import 'package:enlatadora_web/screens/visualize_io_page.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:enlatadora_web/screens/voice_recorder_screen.dart';
@@ -12,7 +13,7 @@ import 'package:enlatadora_web/screens/voice_recorder_screen.dart';
 import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
 import 'package:enlatadora_web/widgets/reset_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:enlatadora_web/models/mock_data.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:web_socket_client/web_socket_client.dart' as ws;
@@ -60,18 +61,6 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
   WiFiState? _wiFiState;
 
   static const String voiceTranscriptionsTopic = "voice/keyword/transcription";
-  final List<MockData> _transcriptions = [];
-  static const int maxTranscriptions = 20;
-
-  void addTranscription(String transcription) {
-    setState(() {
-      _transcriptions.add(MockData(DateTime.now(), transcription));
-    });
-
-    while (_transcriptions.length > maxTranscriptions) {
-      _transcriptions.removeAt(0);
-    }
-  }
 
   late List<Widget Function()> screens = [_home, _recorder, _configBody];
 
@@ -87,7 +76,10 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
       } finally {}
     }, qos: MqttQos.atLeastOnce);
 
-    mqttNotifier.subscribe(voiceTranscriptionsTopic, addTranscription);
+    mqttNotifier.subscribe(
+      voiceTranscriptionsTopic,
+      (t) => ref.read(transcriptionsProvider.notifier).addTranscription(t),
+    );
   }
 
   @override
@@ -614,18 +606,12 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
   }
 
   Widget _recorder() {
-    return VoiceRecorderScreen(
-      trans: _transcriptions,
-      addTrans: addTranscription,
-    );
+    return VoiceRecorderScreen();
   }
 
   Widget _configBody() {
     return ListView(
       children: [
-        // _buildChatWindow(),
-        // const Divider(color: Colors.grey),
-        // const SizedBox(height: 16),
         WifiConfigPage(),
         const SizedBox(height: 16),
         const Divider(color: Colors.grey),

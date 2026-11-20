@@ -5,7 +5,9 @@ import 'dart:typed_data';
 
 import 'package:enlatadora_web/models/app_config.dart';
 import 'package:enlatadora_web/providers/recording_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:enlatadora_web/providers/transcriptions_provider.dart';
+import 'package:enlatadora_web/widgets/groq_voice_recorder.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:record/record.dart';
 import 'package:http/http.dart' as http;
@@ -15,13 +17,11 @@ class GroqVoiceRecorder extends ConsumerStatefulWidget {
   final String groqApiKey;
   final List<String> keywords;
   final void Function(String? matchedKeyword)? onKeywordDetected;
-  final void Function(String transcription)? onTranscriptionReceived;
 
   const GroqVoiceRecorder({
     super.key,
     required this.groqApiKey,
     required this.keywords,
-    this.onTranscriptionReceived,
     this.onKeywordDetected,
   });
 
@@ -174,8 +174,7 @@ class _GroqVoiceRecorderState extends ConsumerState<GroqVoiceRecorder> {
 
       if (deduped.isNotEmpty) {
         _lastTranscription = deduped;
-        widget.onTranscriptionReceived?.call(deduped);
-
+        ref.read(transcriptionsProvider.notifier).addTranscription(deduped);
         // Keyword detection
         _checkKeywords(deduped);
       }

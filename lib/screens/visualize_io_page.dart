@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class VisualizeIOPage extends MqttThingScreen {
   const VisualizeIOPage({
