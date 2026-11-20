@@ -21,22 +21,17 @@ class VisualizeIOPage extends MqttThingScreen {
 }
 
 class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
+  static const _maxItemWith = 100.0;
   String _searchQuery = "";
-  _FilterOption _filter = _FilterOption.all;
 
-  static const Color _outputActiveColor = Colors.amber;
-  static const Color _inputActiveColor = Color(0xFF10B981); // Emerald green
+  static const Color _outputActiveColor = Color(0xFF10B981);
+  static const Color _inputActiveColor = Colors.amber; // Emerald green
 
   @override
   void subscribeToTopics() {}
 
   @override
   void unsubscribeToTopics() {}
-
-  int get _activeOutputsCount =>
-      widget.outputs.where((active) => active).length;
-  int get _activeInputsCount =>
-      widget.inputs.where((active) => active).length;
 
   void _toggleOutput(int index) {
     if (!widget.allowOutputOverride) {
@@ -66,8 +61,7 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
   }
 
   void _toggleOverride(bool value) {
-    final data =
-        value ? "AuthorizeOutputOverride" : "DisableOutputOverride";
+    final data = value ? "AuthorizeOutputOverride" : "DisableOutputOverride";
     mqttNotifier.publish("machine/command", data);
   }
 
@@ -86,11 +80,9 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
           const SizedBox(height: 16),
           _buildStatsAndFilterBar(colorScheme),
           const SizedBox(height: 20),
-          if (_filter == _FilterOption.all || _filter == _FilterOption.outputs)
-            _buildOutputsSection(colorScheme),
-          if (_filter == _FilterOption.all) const SizedBox(height: 24),
-          if (_filter == _FilterOption.all || _filter == _FilterOption.inputs)
-            _buildInputsSection(colorScheme),
+          _buildOutputsSection(colorScheme),
+          const SizedBox(height: 24),
+          _buildInputsSection(colorScheme),
         ],
       ),
     );
@@ -126,9 +118,7 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                isOverrideActive
-                    ? Icons.lock_open_rounded
-                    : Icons.lock_rounded,
+                isOverrideActive ? Icons.lock_open_rounded : Icons.lock_rounded,
                 color: isOverrideActive
                     ? colorScheme.error
                     : colorScheme.primary,
@@ -143,7 +133,9 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
                   Row(
                     children: [
                       Text(
-                        "Manual Output Override",
+                        "Manual Output\nOverride",
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -151,40 +143,10 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isOverrideActive
-                              ? colorScheme.error
-                              : colorScheme.secondaryContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          isOverrideActive ? "ACTIVE" : "LOCKED",
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isOverrideActive
-                                ? colorScheme.onError
-                                : colorScheme.onSecondaryContainer,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    isOverrideActive
-                        ? "Outputs can be manually toggled via dashboard controls."
-                        : "Outputs are locked to automatic PLC state.",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+
                 ],
               ),
             ),
@@ -203,43 +165,8 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
   Widget _buildStatsAndFilterBar(ColorScheme colorScheme) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 600;
-
-        final statsCards = [
-          _buildStatCard(
-            title: "Digital Outputs (Q)",
-            countText: "$_activeOutputsCount / ${widget.outputs.length} Active",
-            icon: Icons.output_rounded,
-            accentColor: _outputActiveColor,
-            colorScheme: colorScheme,
-          ),
-          _buildStatCard(
-            title: "Digital Inputs (I)",
-            countText: "$_activeInputsCount / ${widget.inputs.length} Active",
-            icon: Icons.input_rounded,
-            accentColor: _inputActiveColor,
-            colorScheme: colorScheme,
-          ),
-        ];
-
         return Column(
           children: [
-            if (isNarrow)
-              Column(
-                children: [
-                  statsCards[0],
-                  const SizedBox(height: 8),
-                  statsCards[1],
-                ],
-              )
-            else
-              Row(
-                children: [
-                  Expanded(child: statsCards[0]),
-                  const SizedBox(width: 12),
-                  Expanded(child: statsCards[1]),
-                ],
-              ),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -265,28 +192,6 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                SegmentedButton<_FilterOption>(
-                  segments: const [
-                    ButtonSegment(
-                      value: _FilterOption.all,
-                      label: Text("All"),
-                    ),
-                    ButtonSegment(
-                      value: _FilterOption.outputs,
-                      label: Text("Outputs"),
-                    ),
-                    ButtonSegment(
-                      value: _FilterOption.inputs,
-                      label: Text("Inputs"),
-                    ),
-                  ],
-                  selected: {_filter},
-                  onSelectionChanged: (newSelection) {
-                    setState(() {
-                      _filter = newSelection.first;
-                    });
-                  },
-                ),
               ],
             ),
           ],
@@ -295,73 +200,22 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
     );
   }
 
-  Widget _buildStatCard({
-    required String title,
-    required String countText,
-    required IconData icon,
-    required Color accentColor,
-    required ColorScheme colorScheme,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: accentColor, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-              Text(
-                countText,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: colorScheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildOutputsSection(ColorScheme colorScheme) {
     final filteredIndices = List.generate(widget.outputs.length, (i) => i)
         .where((i) {
-      if (_searchQuery.isEmpty) return true;
-      final tag = "Q$i".toLowerCase();
-      final tagSub = "$i".toLowerCase();
-      final q = _searchQuery.toLowerCase();
-      return tag.contains(q) || tagSub == q;
-    }).toList();
+          if (_searchQuery.isEmpty) return true;
+          final tag = "Q$i".toLowerCase();
+          final tagSub = "$i".toLowerCase();
+          final q = _searchQuery.toLowerCase();
+          return tag.contains(q) || tagSub == q;
+        })
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader(
           title: "Digital Outputs (Q)",
-          subtitle: "Actuators, Valves & Relays",
           icon: Icons.output_rounded,
           countText: "${widget.outputs.length} Channels",
           colorScheme: colorScheme,
@@ -374,10 +228,10 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 140,
-              mainAxisExtent: 125,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
+              maxCrossAxisExtent: _maxItemWith,
+              // mainAxisExtent: 125,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
             ),
             itemCount: filteredIndices.length,
             itemBuilder: (context, idx) {
@@ -390,10 +244,9 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
     );
   }
 
-  Widget _buildOutputTile(
-      int index, bool isActive, ColorScheme colorScheme) {
+  Widget _buildOutputTile(int index, bool isActive, ColorScheme colorScheme) {
     final isOverrideAllowed = widget.allowOutputOverride;
-
+    const double iconSize = 24;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
@@ -448,42 +301,22 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isActive ? _outputActiveColor : Colors.grey.shade400,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    isActive ? "ON" : "OFF",
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: isActive ? _outputActiveColor : colorScheme.outline,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
                   if (!isOverrideAllowed)
                     Tooltip(
                       message: "Override locked",
                       child: Icon(
                         Icons.lock_outline,
-                        size: 14,
+                        size: iconSize,
                         color: colorScheme.outline,
                       ),
                     )
                   else
                     Icon(
                       Icons.touch_app_outlined,
-                      size: 14,
-                      color: isActive ? _outputActiveColor : colorScheme.outline,
+                      size: iconSize,
+                      color: isActive
+                          ? _outputActiveColor
+                          : colorScheme.outline,
                     ),
                 ],
               ),
@@ -495,21 +328,21 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
   }
 
   Widget _buildInputsSection(ColorScheme colorScheme) {
-    final filteredIndices = List.generate(widget.inputs.length, (i) => i)
-        .where((i) {
-      if (_searchQuery.isEmpty) return true;
-      final tag = "I$i".toLowerCase();
-      final tagSub = "$i".toLowerCase();
-      final q = _searchQuery.toLowerCase();
-      return tag.contains(q) || tagSub == q;
-    }).toList();
+    final filteredIndices = List.generate(widget.inputs.length, (i) => i).where(
+      (i) {
+        if (_searchQuery.isEmpty) return true;
+        final tag = "I$i".toLowerCase();
+        final tagSub = "$i".toLowerCase();
+        final q = _searchQuery.toLowerCase();
+        return tag.contains(q) || tagSub == q;
+      },
+    ).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader(
           title: "Digital Inputs (I)",
-          subtitle: "Sensors, Switches & Feedback",
           icon: Icons.input_rounded,
           countText: "${widget.inputs.length} Channels",
           colorScheme: colorScheme,
@@ -522,10 +355,10 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 140,
-              mainAxisExtent: 110,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
+              maxCrossAxisExtent: _maxItemWith,
+              // mainAxisExtent: 110,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
             ),
             itemCount: filteredIndices.length,
             itemBuilder: (context, idx) {
@@ -538,8 +371,7 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
     );
   }
 
-  Widget _buildInputTile(
-      int index, bool isActive, ColorScheme colorScheme) {
+  Widget _buildInputTile(int index, bool isActive, ColorScheme colorScheme) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
@@ -566,7 +398,7 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
       child: Padding(
         padding: const EdgeInsets.all(10.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -589,15 +421,6 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isActive ? _inputActiveColor : Colors.grey.shade400,
-                  ),
-                ),
-                const SizedBox(width: 6),
                 Text(
                   isActive ? "ACTIVE" : "IDLE",
                   style: TextStyle(
@@ -608,16 +431,6 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
                 ),
               ],
             ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: Text(
-                "Sensor",
-                style: TextStyle(
-                  fontSize: 10,
-                  color: colorScheme.outline,
-                ),
-              ),
-            ),
           ],
         ),
       ),
@@ -626,7 +439,6 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
 
   Widget _buildSectionHeader({
     required String title,
-    required String subtitle,
     required IconData icon,
     required String countText,
     required ColorScheme colorScheme,
@@ -645,13 +457,6 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: colorScheme.onSurface,
-                ),
-              ),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -681,12 +486,7 @@ class _VisualizeIOPageState extends MqttThingScreenState<VisualizeIOPage> {
     return Container(
       padding: const EdgeInsets.all(24),
       alignment: Alignment.center,
-      child: Text(
-        message,
-        style: const TextStyle(color: Colors.grey),
-      ),
+      child: Text(message, style: const TextStyle(color: Colors.grey)),
     );
   }
 }
-
-enum _FilterOption { all, outputs, inputs }

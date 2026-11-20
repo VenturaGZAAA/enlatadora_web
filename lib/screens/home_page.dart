@@ -253,7 +253,7 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
           curve: Curves.bounceIn,
           width: double.infinity,
           height: double.infinity,
-          padding: EdgeInsets.all(25),
+          padding: EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -421,7 +421,7 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
               
               final delta = event.position - _dragStartPosition!;
               log("Raw delta: ${delta.dx}");
-              const threshold = 50.0;
+              const threshold = 100.0;
               if (delta.dx > threshold) {
                 prevHome();
               } else if (delta.dx < -threshold) {
