@@ -16,7 +16,11 @@ class MainStateNotifier extends Notifier<MainPage> {
   void goToConfig() {
     state = MainPage.config;
   }
-  bool get isHome => state == MainPage.control;
+  void goToControl(){
+    state = MainPage.control;
+  }
+
+  bool get isControl => state == MainPage.control;
 }
 
 final mainPageProvider = NotifierProvider<MainStateNotifier, MainPage>(

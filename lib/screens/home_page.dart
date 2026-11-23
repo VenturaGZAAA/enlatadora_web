@@ -291,6 +291,11 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
     );
   }
 
+  void _onStatusPressed(){
+    _homeView = HomeView.control;
+    ref.read(mainPageProvider.notifier).goToControl();
+  }
+
   Widget _statusCard() {
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -301,80 +306,83 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
         ? (_machinePaused ? "PAUSED" : "RUNNING")
         : "STOPPED";
 
-    return Card(
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onTap: _onStatusPressed,
+      child: Card(
+        elevation: 1,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Stage",
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      _stage ?? "",
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
-                    "Stage",
+                    "Authorized",
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  Text(
-                    _stage ?? "",
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Checkbox(value: _authorizedSystem, onChanged: (_) {}),
                 ],
               ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  "Authorized",
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
+              const SizedBox(width: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: statusColor, width: 1.5),
                 ),
-                Checkbox(value: _authorizedSystem, onChanged: (_) {}),
-              ],
-            ),
-            const SizedBox(width: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: statusColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: statusColor, width: 1.5),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    _machineRunning
-                        ? (_machinePaused
-                              ? Icons.pause_circle_filled
-                              : Icons.play_circle_filled)
-                        : Icons.stop_circle,
-                    size: 18,
-                    color: statusColor,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    statusText,
-                    style: TextStyle(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _machineRunning
+                          ? (_machinePaused
+                                ? Icons.pause_circle_filled
+                                : Icons.play_circle_filled)
+                          : Icons.stop_circle,
+                      size: 18,
                       color: statusColor,
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 6),
+                    Text(
+                      statusText,
+                      style: TextStyle(
+                        color: statusColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -635,11 +643,12 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
             });
           },
         ),
-
+        const SizedBox(height: 8),
         WifiConfigPage(publishData: publishWifi),
         if (_configView == ConfigView.master) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           const Divider(color: Colors.grey),
+          const SizedBox(height: 8),
           ResetButton(),
         ],
       ],
