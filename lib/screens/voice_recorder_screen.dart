@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'package:material_ui/material_ui.dart';
 
 import 'package:enlatadora_web/models/app_config.dart';
+import 'package:enlatadora_web/models/groq_storage/groq_storage.dart';
 import 'package:enlatadora_web/providers/recording_provider.dart';
 import 'package:enlatadora_web/providers/transcriptions_provider.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
@@ -51,11 +52,24 @@ class _VoiceRecorderScreenState
     if (!AppConfig.espBuild) {
       mqttNotifier.publish("voice/keyword/command", "voiceOff");
     }
+
   }
 
   @override
   void unsubscribeToTopics() {
     mqttNotifier.unsubscribe(espListeningTopic);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (!AppConfig.espBuild) {
+      final savedKey = loadGroqKey();
+      if (savedKey != null && savedKey.isNotEmpty) {
+        AppConfig.groqKey = savedKey;
+      }
+    }
   }
 
   @override

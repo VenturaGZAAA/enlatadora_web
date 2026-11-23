@@ -10,6 +10,7 @@ import 'package:enlatadora_web/screens/visualize_io_page.dart';
 import 'package:enlatadora_web/screens/mqtt_thing_screen.dart';
 import 'package:enlatadora_web/screens/voice_recorder_screen.dart';
 
+import 'package:enlatadora_web/widgets/groq_config_button.dart';
 import 'package:enlatadora_web/widgets/mqtt_config_button.dart';
 import 'package:enlatadora_web/widgets/reset_button.dart';
 import 'package:enlatadora_web/widgets/wifi_config_page.dart';
@@ -236,7 +237,13 @@ class _MainPageState extends MqttThingScreenState<MainScreen> {
                 Icons.record_voice_over,
                 color: ref.watch(recordingProvider) ? Colors.lightGreen : null,
               ),
-              SizedBox(width: 5),
+              const SizedBox(width: 5),
+              if (!AppConfig.espBuild)
+                GroqConfigButton(
+                  onKeyUpdated: () {
+                    setState(() {});
+                  },
+                ),
             ],
             MainPage.config => [MqttConfigButton()],
           },
