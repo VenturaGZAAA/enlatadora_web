@@ -1,19 +1,29 @@
 import 'dart:developer';
 import 'dart:html' as html;
 
+import 'package:enlatadora_web/models/app_config.dart';
+
 const String _groqKeyStorageKey = 'groq_api_key';
 
-String? loadGroqKey() {
+Future<String?> loadGroqKey() async {
   try {
-    return html.window.localStorage[_groqKeyStorageKey];
+    if (AppConfig.customGroqKey != null && AppConfig.customGroqKey!.isNotEmpty) {
+      return AppConfig.customGroqKey;
+    }
+    final stored = html.window.localStorage[_groqKeyStorageKey];
+    if (stored != null && stored.isNotEmpty) {
+      AppConfig.customGroqKey = stored;
+      return stored;
+    }
   } catch (e) {
     log("Error loading Groq key from localStorage: $e");
-    return null;
   }
+  return AppConfig.customGroqKey;
 }
 
-void saveGroqKey(String key) {
+Future<void> saveGroqKey(String key) async {
   try {
+    AppConfig.customGroqKey = key;
     html.window.localStorage[_groqKeyStorageKey] = key;
   } catch (e) {
     log("Error saving Groq key to localStorage: $e");

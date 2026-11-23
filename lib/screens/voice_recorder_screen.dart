@@ -10,9 +10,7 @@ import 'package:enlatadora_web/widgets/groq_voice_recorder.dart';
 import 'package:enlatadora_web/widgets/voice_recorder_button.dart';
 
 class VoiceRecorderScreen extends MqttThingScreen {
-  const VoiceRecorderScreen({
-    super.key,
-  }) : super(rootTopico: "");
+  const VoiceRecorderScreen({super.key}) : super(rootTopico: "");
 
   @override
   MqttThingScreenState<MqttThingScreen> createState() {
@@ -23,7 +21,6 @@ class VoiceRecorderScreen extends MqttThingScreen {
 class _VoiceRecorderScreenState
     extends MqttThingScreenState<VoiceRecorderScreen> {
   String? _match;
-
   static const String espListeningTopic = "voice/keyword/listening";
   bool _espListening = false;
 
@@ -52,7 +49,6 @@ class _VoiceRecorderScreenState
     if (!AppConfig.espBuild) {
       mqttNotifier.publish("voice/keyword/command", "voiceOff");
     }
-
   }
 
   @override
@@ -60,24 +56,31 @@ class _VoiceRecorderScreenState
     mqttNotifier.unsubscribe(espListeningTopic);
   }
 
+  Future<void> _initGroqKey() async {
+    if (!AppConfig.espBuild) {
+      final savedKey = await loadGroqKey();
+      if (savedKey != null && savedKey.isNotEmpty) {
+        AppConfig.customGroqKey = savedKey;
+      }
+      if (mounted) {
+        setState(() {});
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-
-    if (!AppConfig.espBuild) {
-      final savedKey = loadGroqKey();
-      if (savedKey != null && savedKey.isNotEmpty) {
-        AppConfig.groqKey = savedKey;
-      }
-    }
+    _initGroqKey();
   }
 
   @override
   Widget buildBody(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final currentKey = AppConfig.groqKey;
 
-    if (AppConfig.groqKey.length < 5 && !AppConfig.espBuild) {
+    if (!AppConfig.espBuild && currentKey.length < 5) {
       return Center(
         child: Card(
           margin: const EdgeInsets.all(24),
@@ -177,7 +180,9 @@ class _VoiceRecorderScreenState
                       Text(
                         "Command: ",
                         style: TextStyle(
-                          color: colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
+                          color: colorScheme.onPrimaryContainer.withValues(
+                            alpha: 0.7,
+                          ),
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                         ),
@@ -260,7 +265,9 @@ class _VoiceRecorderScreenState
                                   Icon(
                                     Icons.graphic_eq_rounded,
                                     size: 48,
-                                    color: colorScheme.outline.withValues(alpha: 0.5),
+                                    color: colorScheme.outline.withValues(
+                                      alpha: 0.5,
+                                    ),
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
@@ -345,9 +352,10 @@ class _VoiceRecorderScreenState
 
           // Bottom Voice Action Button Area
           Center(
-            child: espButton ??
+            child:
+                espButton ??
                 GroqVoiceRecorder(
-                  groqApiKey: AppConfig.groqKey,
+                  groqApiKey: currentKey,
                   keywords: const [
                     "stop",
                     "disable",

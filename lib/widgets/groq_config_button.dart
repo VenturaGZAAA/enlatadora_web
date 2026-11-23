@@ -18,7 +18,7 @@ class _GroqConfigButtonState extends State<GroqConfigButton> {
   @override
   void initState() {
     super.initState();
-    _keyController = TextEditingController(text: AppConfig.groqKey);
+    _keyController = TextEditingController();
   }
 
   @override
@@ -28,7 +28,7 @@ class _GroqConfigButtonState extends State<GroqConfigButton> {
   }
 
   void _showConfigDialog(BuildContext context) {
-    _keyController.text = AppConfig.groqKey;
+    _keyController.text = AppConfig.customGroqKey ?? "";
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -64,11 +64,12 @@ class _GroqConfigButtonState extends State<GroqConfigButton> {
               child: const Text("Return"),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 final key = _keyController.text.trim();
-                saveGroqKey(key);
-                AppConfig.groqKey = key;
-                Navigator.pop(ctx);
+                await saveGroqKey(key);
+                if (ctx.mounted) {
+                  Navigator.pop(ctx);
+                }
                 widget.onKeyUpdated?.call();
               },
               child: const Text("Confirmar"),
